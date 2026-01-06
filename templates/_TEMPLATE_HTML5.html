@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--
+============================================================
+TEMPLATE_HTML5.html
+------------------------------------------------------------
+Description :
+    Template HTML5 générique pour rendus Jinja2 :
+    - pages standalone (rapports)
+    - prototypes UI
+    - rendu de résultats / KPI
+
+Projet :
+    V&V IA (APP1_QRA / APP2_TCTC / APP3_AITA / vv-portfolio)
+============================================================
+-->
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ title }}</title>
+
+    <!-- Responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Style minimal pro -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        header {
+            font-size: 24px;
+            font-weight: bold;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #888;
+        }
+        .content {
+            padding: 10px 0;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            background: #e9eef6;
+            border: 1px solid #c9d6ea;
+            color: #234;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    {{ header }}
+    {% if badge %}
+      <span class="badge">{{ badge }}</span>
+    {% endif %}
+</header>
+
+<div class="content">
+    {{ content | safe }}
+</div>
+
+</body>
+</html>
