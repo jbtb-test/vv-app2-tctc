@@ -1,105 +1,99 @@
-# APP2 — TCTC  
-**Traceability & Test Coverage Tool (V&V Demonstrator)**
+# APP2 — TCTC (Traceability & Test Coverage Tool) — Traceability & Coverage Assistant
 
-## 🎯 Objectif
+## TL;DR — Démo en 1 phrase
+Outil de traçabilité Exigences ↔ Cas de test qui construit automatiquement une matrice de traçabilité,
+calcule des KPI de couverture (exigences non couvertes, tests orphelins) et génère un rapport HTML démontrable,
+avec IA optionnelle et non décisionnelle pour suggérer des liens manquants.
 
-APP2 démontre une maîtrise industrielle de la **traçabilité Exigences ↔ Cas de test** et du **pilotage de la couverture de tests**, au cœur du **V-cycle V&V**.
+**But :** fiabiliser et démontrer la couverture de tests grâce à un **pipeline outillé** :
+- construction de la traçabilité via **moteur déterministe**
+- détection automatique des écarts de couverture
+- suggestions **optionnelles** via IA
+- génération d’outputs démontrables (CSV + HTML)
 
-L’application permet de :
+> IA = **suggestion only** (jamais décisionnelle).  
+> L’application fonctionne **sans IA** par défaut.
 
-- Construire automatiquement une **matrice de traçabilité**
-- Calculer des **KPI de couverture fiables**
-- Détecter les anomalies de traçabilité :
-  - exigences non couvertes
-  - cas de test orphelins
-- Proposer (optionnellement) des **suggestions de liens via IA**, sans jamais décider à la place de l’ingénieur
+## Problème métier
+La traçabilité et la couverture de tests sont souvent :
+- dispersées (Excel, ALM, liens manuels)
+- fragiles (exigences non couvertes, tests orphelins)
+- difficiles à auditer rapidement
+- peu démontrables en entretien sans matrice claire ni KPI synthétiques
 
-> Positionnement : **outil d’analyse V&V**, pas un générateur automatique de vérité.
+## Valeur apportée
+- **Couverture fiable** : KPI calculés automatiquement et auditables
+- **Détection des écarts** : exigences non couvertes, tests orphelins
+- **Traçabilité** : règles explicites, tests unitaires, outputs reproductibles
+- **Démo immédiate** : rapport HTML consultable (sans exécution)
 
-## 🧠 Principes de conception (V&V first)
+## Fonctionnement (pipeline résumé)
 
-- ✅ **Moteur déterministe prioritaire**
-- 🤖 **IA optionnelle**
-  - désactivée par défaut
-  - non bloquante
-  - non décisionnelle
-- 📊 **Résultats explicables**
-- 🧪 **Tests unitaires systématiques**
-- 📁 Séparation stricte :
-  - `data/outputs/` → runtime (gitignore)
-  - `docs/outputs_demo/` → résultats figés pour revue recruteur
+1) **Entrées**  
+   CSV d’exigences + CSV de cas de test  
+   (format proche DOORS / Polarion)
 
-## 📥 Entrées
+2) **Analyse déterministe**  
+   Validation des datasets, construction de la matrice, calcul des KPI
 
-### Dataset Exigences (CSV)
+3) **IA (optionnelle)**  
+   Suggestions de liens potentiels manquants  
+   (non décisionnelles, aucune création ou modification automatique)
 
-Exemple :
+4) **Sorties**
+   - Matrice de traçabilité CSV
+   - KPI de couverture CSV
+   - Rapport HTML (consultable)
 
-```csv
-requirement_id,title,criticality
-REQ-001,Authentification utilisateur,HIGH
-REQ-002,Gestion des sessions,MEDIUM
+> L’IA est **optionnelle**, **non bloquante**, et **n’influence jamais les KPI**.
+
+## Quickstart
+
+### Option A — Démo immédiate (sans exécution)
+Ouvrir directement le rapport HTML de démonstration :
+
+- `docs/outputs_demo/tctc_output_demo.html`
+
+Note GitHub :  
+GitHub affiche le code HTML.  
+Pour voir le rapport, téléchargez le fichier ou le dépôt, puis ouvrez
+`docs/outputs_demo/tctc_output_demo.html` dans votre navigateur.
+
+### Option B — Reproduire localement (sans IA, recommandé)
+
+```bash
+python -m vv_app2_tctc.main --verbose
 ```
 
-### Dataset Cas de test (CSV)
+Génère automatiquement :
+- `data/outputs/tctc_matrix_<timestamp>.csv'
+- `data/outputs/tctc_kpi_<timestamp>.csv`
+- `data/outputs/tctc_report_<timestamp>.html`
 
-```csv
-test_id,title,linked_requirements
-TC-01,Test login valide,REQ-001
-TC-02,Test expiration session,REQ-002
+Ouvrir le fichier HTML généré dans un navigateur.
+
+### Option C — Mode IA (optionnel, avancé)
+
+```powershell
+$env:ENABLE_AI="1"
+$env:OPENAI_API_KEY="your_key_here"
+python -m vv_app2_tctc.main --verbose
 ```
 
-## Traitements principaux
+> L’IA fournit uniquement des suggestions de liens.
+> Elle ne crée ni ne modifie automatiquement la traçabilité.
 
-1. Validation des datasets
-- unicité des IDs
-- existence des liens
-- rejet contrôlé des données invalides
+## Structure du projet
 
-2. Construction de la matrice de traçabilité
-- exigences ↔ tests
-- vue bidirectionnelle
+```text
+vv-app2-tctc/
+├─ src/
+│  └─ vv_app2_tctc/
+├─ tests/
+├─ data/
+│  └─ inputs/
+├─ docs/
+│  └─ outputs_demo/
+└─ README.md
+```
 
-3. Calcul des KPI
-- taux de couverture des exigences
-- taux de tests liés
-- exigences critiques non couvertes
-
-4. Analyse des écarts
-- exigences sans tests
-- tests sans exigences
-
-5. IA optionnelle (désactivée par défaut)
-- suggestion de liens potentiels
-- basée sur similarité sémantique
-- aucune création automatique ou modification de lien
-
-## KPI produits (exemples)
-
-- Coverage exigences : 85 %
-- Exigences critiques non couvertes : 1
-- Tests orphelins : 2
-- Taux de traçabilité bidirectionnelle : 100 %
-
-> Tous les KPI sont recalculables, traçables, auditables.
-
-## Sorties
-
-1. Formats
-- CSV (matrice, KPI)
-- HTML (rapport lisible en 2 minutes)
-
-2. Emplacements
-- data/outputs/ : exécution locale
-- docs/outputs_demo/ : snapshots commités pour démonstration GitHub
-
-## Qualité & tests
-
-1. Tests unitaires couvrant :
-- validation des données
-- calcul des KPI
-- détection des écarts
-
-2. Aucun effet de bord
-
-3. Reproductibilité garantie
