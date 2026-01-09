@@ -1,0 +1,46 @@
+# ============================================================
+# pyproject.toml
+# ------------------------------------------------------------
+# Rôle :
+#   Définition du projet Python et de son mode d’installation.
+#
+#   Ce fichier est utilisé par pip / setuptools pour :
+#     - rendre le package installable (pip install -e .)
+#     - gérer correctement le layout "src/"
+#     - éviter l’usage de PYTHONPATH
+#
+#   Choix d’architecture :
+#     - layout src/ avec package explicite (vv_app2_tctc)
+#     - séparation claire code / tests / data / docs
+#
+#   Ce choix est volontaire et commun aux 3 apps du portfolio
+#   (APP1 QRA, APP2 TCTC, APP3 AITA).
+# ============================================================
+
+
+[build-system]
+# Outils nécessaires pour construire / installer le package
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+# Métadonnées du projet (utilisées par pip)
+name = "vv-app2-tctc"
+version = "0.1.0"
+description = "APP2 TCTC — Test Case To Code"
+requires-python = ">=3.10"
+
+# Dépendances runtime (volontairement vide en phase initiale)
+dependencies = []
+
+
+[tool.setuptools]
+# Indique que les packages Python sont situés dans le dossier src/
+# (layout recommandé pour éviter les imports implicites)
+package-dir = {"" = "src"}
+
+
+[tool.setuptools.packages.find]
+# Recherche automatique des packages sous src/
+where = ["src"]

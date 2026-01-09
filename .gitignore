@@ -23,3 +23,17 @@ Thumbs.db
 
 # Office temporary files
 .~lock.*#
+
+# vv_app2_tctc.egg-info
+*.egg-info/
+dist/
+build/
+
+#output bruit
+data/outputs/*.tmp
+
+# Generated outputs
+/data/outputs/
+
+#cle API
+.env.secret
