@@ -17,11 +17,13 @@ Rôle :
 Usage (PowerShell) :
     .\venv\Scripts\Activate.ps1
     python tools/env_check.py --out docs/env_report.md --json-out docs/env_report.json
+    python tools/env_check.py --print
     deactivate
 
 Usage (Git Bash) :
     source venv/Scripts/activate
     python tools/env_check.py --out docs/env_report.md --json-out docs/env_report.json
+    python tools/env_check.py --print
     deactivate
 
 Notes :
@@ -29,8 +31,6 @@ Notes :
     - Conçu pour être testable (collect_env_info / write_*).
 ============================================================
 """
-
-from __future__ import annotations
 
 import argparse
 import json
@@ -72,11 +72,12 @@ def _now_utc_iso() -> str:
 def _detect_project_root(start: Path) -> Path:
     """
     Détecte la racine projet (repo app) en cherchant un marqueur.
-    Ici : requirements.txt (créé en 0.7) ou pytest.ini.
+    Marqueurs courants : pyproject.toml, pytest.ini, requirements.txt, .git
     """
     cur = start.resolve()
-    for _ in range(10):
-        if (cur / "requirements.txt").exists() or (cur / "pytest.ini").exists():
+    markers = ("pyproject.toml", "pytest.ini", "requirements.txt", ".git")
+    for _ in range(15):
+        if any((cur / m).exists() for m in markers):
             return cur
         if cur.parent == cur:
             break
@@ -92,7 +93,6 @@ def _safe_run_pip_version() -> str:
         import pip  # type: ignore
         return getattr(pip, "__version__", "unknown")
     except Exception:
-        # Fallback : pip peut ne pas être importable selon environnement
         return "unknown"
 
 
@@ -103,7 +103,7 @@ def collect_env_info(cwd: Optional[Path] = None) -> EnvInfo:
     is_venv = (sys.prefix != sys.base_prefix) or bool(os.environ.get("VIRTUAL_ENV"))
     venv_prefix = os.environ.get("VIRTUAL_ENV") or sys.prefix
 
-    info = EnvInfo(
+    return EnvInfo(
         timestamp_utc=_now_utc_iso(),
         cwd=str(cwd_path),
         project_root=str(project_root),
@@ -116,11 +116,10 @@ def collect_env_info(cwd: Optional[Path] = None) -> EnvInfo:
         os_release=platform.release(),
         platform=platform.platform(),
     )
-    return info
 
 
 # ============================================================
-# 🧾 Render / Write
+# ✅ Health / Render
 # ============================================================
 def env_info_to_dict(info: EnvInfo) -> Dict[str, Any]:
     return {
@@ -138,33 +137,81 @@ def env_info_to_dict(info: EnvInfo) -> Dict[str, Any]:
     }
 
 
-def render_markdown(info: EnvInfo) -> str:
-    ok_venv = "OK" if info.is_venv else "KO (venv non détecté)"
+def _redact_path(p: str) -> str:
+    """
+    Masque les chemins personnels pour une démo (ex: C:\\Users\\<user>\\...).
+    """
+    try:
+        path = Path(p)
+        parts = list(path.parts)
+        # Windows: ("C:\\", "Users", "<name>", ...)
+        if len(parts) >= 3 and parts[1].lower() == "users":
+            parts[2] = "<user>"
+            return str(Path(*parts))
+        return p
+    except Exception:
+        return p
+
+
+def render_markdown(info: EnvInfo, *, redact_paths: bool = False) -> str:
+    cwd = _redact_path(info.cwd) if redact_paths else info.cwd
+    root = _redact_path(info.project_root) if redact_paths else info.project_root
+    exe = _redact_path(info.python_executable) if redact_paths else info.python_executable
+    venvp = _redact_path(info.venv_prefix) if redact_paths else info.venv_prefix
+
+    venv_ok = info.is_venv
+    pip_ok = info.pip_version != "unknown"
+    root_ok = bool(info.project_root)
+
+    checks = [
+        ("Virtualenv détecté", venv_ok, f"prefix={venvp}"),
+        ("pip visible", pip_ok, f"pip={info.pip_version}"),
+        ("project root détecté", root_ok, f"root={root}"),
+    ]
+    healthy = all(ok for _, ok, _ in checks)
+    verdict = "✅ HEALTHY" if healthy else "⚠️ CHECK"
+
     lines = [
         "# Environment Healthcheck Report",
         "",
         f"- Generated (UTC): **{info.timestamp_utc}**",
+        f"- Verdict: **{verdict}**",
+        "",
+        "## Checks",
+    ]
+    for label, ok, detail in checks:
+        icon = "✅" if ok else "❌"
+        lines.append(f"- {icon} **{label}** — {detail}")
+
+    lines += [
         "",
         "## Runtime",
         f"- Python version: **{info.python_version}**",
-        f"- Python executable: `{info.python_executable}`",
+        f"- Python executable: `{exe}`",
         f"- Pip version: **{info.pip_version}**",
-        f"- Virtualenv detected: **{ok_venv}**",
-        f"- Venv prefix: `{info.venv_prefix}`",
         "",
         "## System",
         f"- OS: **{info.os_name} {info.os_release}**",
         f"- Platform: `{info.platform}`",
         "",
         "## Project",
-        f"- CWD: `{info.cwd}`",
-        f"- Project root (detected): `{info.project_root}`",
+        f"- CWD: `{cwd}`",
+        f"- Project root (detected): `{root}`",
         "",
-        "## Verdict",
-        "- ✅ If venv is detected and python/pip are visible, environment is considered **HEALTHY** for Phase 0.",
+        "## Notes",
+        "- En entretien : lancer avec `--redact-paths` pour masquer les chemins utilisateur.",
+        "- Exit code: `0` si HEALTHY, `2` si venv non détecté.",
         "",
     ]
     return "\n".join(lines)
+
+
+def is_healthy_minimal(info: EnvInfo) -> bool:
+    """
+    Critère minimal : venv détecté.
+    (On garde ce critère simple pour éviter faux négatifs.)
+    """
+    return bool(info.is_venv)
 
 
 def write_text(path: Path, content: str) -> None:
@@ -185,6 +232,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", type=str, default="", help="Output Markdown report path (e.g. docs/env_report.md)")
     p.add_argument("--json-out", type=str, default="", help="Output JSON report path (e.g. docs/env_report.json)")
     p.add_argument("--print", action="store_true", help="Print report to stdout")
+    p.add_argument("--quiet", action="store_true", help="No stdout (useful in CI)")
+    p.add_argument("--redact-paths", action="store_true", help="Mask personal paths for interview/demo")
     return p
 
 
@@ -192,19 +241,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
 
     info = collect_env_info()
-    md = render_markdown(info)
+    md = render_markdown(info, redact_paths=args.redact_paths)
     payload = env_info_to_dict(info)
 
     if args.out:
         write_text(Path(args.out), md)
     if args.json_out:
         write_json(Path(args.json_out), payload)
-    if args.print or (not args.out and not args.json_out):
-        print(md)
 
-    # Exit code : 0 si healthy minimal (venv détecté)
-    return 0 if info.is_venv else 2
+    # stdout : explicit --print OR no outputs specified (default behavior),
+    # unless --quiet.
+    if not args.quiet and (args.print or (not args.out and not args.json_out)):
+        try:
+            print(md)
+        except UnicodeEncodeError:
+            # Windows consoles (cp1252) peuvent casser sur les emojis (✅).
+            # Fallback : remplace les chars non encodables.
+            print(md.encode("utf-8", errors="replace").decode("utf-8", errors="replace"))
 
+    return 0 if is_healthy_minimal(info) else 2
 
 if __name__ == "__main__":
     raise SystemExit(main())
