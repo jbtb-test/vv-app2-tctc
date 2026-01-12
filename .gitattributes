@@ -1,8 +1,33 @@
+# ============================================================
+# .gitattributes
+# ------------------------------------------------------------
+# Rôle :
+#   Normaliser les fins de ligne (EOL) dans le dépôt.
+#
+# Objectifs :
+#   - Éviter les diffs parasites CRLF / LF
+#   - Garantir un comportement identique sur Windows / Linux / CI
+#   - Stabiliser les fichiers texte (code, docs, config)
+# ============================================================
+
+# Détection automatique des fichiers texte
 * text=auto
+
+# ------------------------------------------------------------
+# Langages / formats critiques → forcer LF
+# ------------------------------------------------------------
+
+# Code Python
 *.py   text eol=lf
+
+# Configuration / tooling
 *.ini  text eol=lf
 *.txt  text eol=lf
+
+# Documentation
 *.md   text eol=lf
+
+# Templates / frontend
 *.html text eol=lf
 *.css  text eol=lf
 *.js   text eol=lf

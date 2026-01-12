@@ -17,30 +17,29 @@
 #   (APP1 QRA, APP2 TCTC, APP3 AITA).
 # ============================================================
 
-
 [build-system]
-# Outils nécessaires pour construire / installer le package
 requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
-
 [project]
-# Métadonnées du projet (utilisées par pip)
 name = "vv-app2-tctc"
 version = "0.1.0"
-description = "APP2 TCTC — Test Case To Code"
+description = "APP2 TCTC — Test-Case Traceability Checker CLI"
 requires-python = ">=3.10"
 
-# Dépendances runtime (volontairement vide en phase initiale)
-dependencies = []
+# Dépendances runtime
+dependencies = [
+  "Jinja2>=3.1.6",
+]
 
+[project.optional-dependencies]
+# Optional AI mode (suggestion-only, non-blocking)
+ai = [
+  "openai>=2.14.0",
+]
 
 [tool.setuptools]
-# Indique que les packages Python sont situés dans le dossier src/
-# (layout recommandé pour éviter les imports implicites)
 package-dir = {"" = "src"}
 
-
 [tool.setuptools.packages.find]
-# Recherche automatique des packages sous src/
 where = ["src"]
