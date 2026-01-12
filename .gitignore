@@ -1,25 +1,68 @@
+# --------------------
 # Python
+# --------------------
 __pycache__/
 *.py[cod]
 *.pyo
 
+# --------------------
 # Virtual environments
+# --------------------
 venv/
 .venv/
 
+# --------------------
 # Test / tooling
+# --------------------
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Env files
+# --------------------
+# Environment files (security)
+# --------------------
 .env
+.env.*
+!.env.example
 
+# --------------------
 # OS / IDE
+# --------------------
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
+# --------------------
 # Office temporary files
+# --------------------
 .~lock.*#
+
+# --------------------
+# Packaging / build
+# --------------------
+*.egg-info/
+dist/
+build/
+
+# --------------------
+# Generated runtime outputs
+# --------------------
+data/outputs/
+data/outputs/*
+
+# --------------------
+# Dependency lock (local snapshot)
+# --------------------
+requirements.lock.txt
+
+# --------------------
+# Mypy / Ruff / caches divers
+# --------------------
+.mypy_cache/
+.ruff_cache/
+
+# --------------------
+# Python artifacts
+# --------------------
+*.log
