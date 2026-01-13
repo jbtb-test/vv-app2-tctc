@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+============================================================
+test_kpi.py — APP2 TCTC
+------------------------------------------------------------
+Description :
+    Tests unitaires (pytest) pour le calcul KPI de couverture.
+
+Objectifs :
+    - Vérifier comportement nominal (couverture partielle)
+    - Vérifier cas limite (0 exigences)
+    - Vérifier cas limite (liens vides)
+
+Usage :
+    pytest -q
+============================================================
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from vv_app2_tctc import models
+from vv_app2_tctc.kpi import compute_coverage_kpis
+from vv_app2_tctc.traceability import build_matrix_from_testcases
+
+
+# ============================================================
+# 🔧 Fixtures
+# ============================================================
+@pytest.fixture
+def req_001() -> models.Requirement:
+    return models.Requirement.from_dict(
+        {"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}
+    )
+
+
+@pytest.fixture
+def req_002() -> models.Requirement:
+    return models.Requirement.from_dict(
+        {"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "HIGH"}
+    )
+
+
+# ============================================================
+# 🧪 Tests
+# ============================================================
+def test_kpi_nominal_one_covered_one_uncovered(req_001: models.Requirement, req_002: models.Requirement) -> None:
+    tcs = [
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": "REQ-001"}
+        )
+    ]
+    matrix = build_matrix_from_testcases([req_001, req_002], tcs)
+    kpi = compute_coverage_kpis(matrix)
+
+    assert kpi.total_requirements == 2
+    assert kpi.coverage_percent == 50.0
+    assert kpi.covered_requirements == ["REQ-001"]
+    assert kpi.uncovered_requirements == ["REQ-002"]
+    assert kpi.orphan_tests == []
+
+
+def test_kpi_no_requirements() -> None:
+    # test lié à une exigence inexistante -> le KPI doit rester robuste
+    tcs = [
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": "REQ-001"}
+        )
+    ]
+    matrix = build_matrix_from_testcases([], tcs)
+    kpi = compute_coverage_kpis(matrix)
+
+    assert kpi.total_requirements == 0
+    assert kpi.coverage_percent == 0.0
+
+
+def test_kpi_empty_links_handled(req_001: models.Requirement) -> None:
+    tcs = [
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""}
+        )
+    ]
+    matrix = build_matrix_from_testcases([req_001], tcs)
+    kpi = compute_coverage_kpis(matrix)
+
+    assert kpi.covered_requirements == []
+    assert kpi.uncovered_requirements == ["REQ-001"]
+    assert kpi.coverage_percent == 0.0
