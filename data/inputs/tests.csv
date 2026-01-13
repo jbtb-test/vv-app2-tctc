@@ -1,5 +1,5 @@
-test_id,title,description,linked_requirements
-TC-001,Login valide,Vérifie qu'un utilisateur peut se connecter avec des identifiants valides,REQ-001
-TC-002,Verrouillage après 3 échecs,Vérifie que le compte est verrouillé après trois tentatives de connexion échouées,REQ-002
-TC-003,Journalisation des connexions,Vérifie que chaque connexion est enregistrée avec date et adresse IP,REQ-003
-TC-004,Test de performance login,Vérifie le temps de réponse du service d'authentification,
+ï»¿test_id,title,description,linked_requirements
+TC-001,Login valide,VÃ©rifie qu'un utilisateur peut se connecter avec des identifiants valides,REQ-001
+TC-002,Verrouillage aprÃ¨s 3 Ã©checs,VÃ©rifie que le compte est verrouillÃ© aprÃ¨s trois tentatives de connexion Ã©chouÃ©es,REQ-002
+TC-003,Journalisation des connexions,VÃ©rifie que chaque connexion est enregistrÃ©e avec date et adresse IP,REQ-003
+TC-004,Test de performance login,VÃ©rifie le temps de rÃ©ponse du service d'authentification,
