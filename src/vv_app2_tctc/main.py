@@ -42,6 +42,10 @@ from __future__ import annotations
 from vv_app2_tctc.models import Requirement, TestCase
 from vv_app2_tctc.validators import validate_datasets, raise_if_invalid
 
+from vv_app2_tctc.traceability import build_matrix_from_testcases
+from vv_app2_tctc.kpi import compute_coverage_kpis
+from vv_app2_tctc.ia_assistant import suggest_missing_links
+from vv_app2_tctc.report import generate_report_bundle
 # ============================================================
 # 📦 Imports
 # ============================================================
@@ -355,7 +359,9 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     - Charge requirements.csv + tests.csv
     - Applique validations minimales (présence, non-vide si fail_on_empty)
     - Valide la cohérence datasets (2.8.1)
-    - Génère outputs snapshot (CSV + HTML)
+    - Construit matrice (2.9) + KPI (2.10)
+    - (Optionnel) Génère suggestions IA (2.11)
+    - Génère rapport HTML + CSV (2.12)
     """
     try:
         if not isinstance(data, dict):
@@ -370,17 +376,18 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         if verbose:
             log.setLevel(logging.DEBUG)
 
-        log.info("Démarrage APP2 TCTC — CLI (2.7)")
-        log.info(f"Requirements : {req_path}")
-        log.info(f"Tests        : {tests_path}")
-        log.info(f"Out dir      : {out_dir}")
+        log.info("Démarrage APP2 TCTC — CLI (2.12)")
+        log.info("Requirements : %s", req_path)
+        log.info("Tests        : %s", tests_path)
+        log.info("Out dir      : %s", out_dir)
 
-        # IA volontairement ignorée à ce stade (2.7)
-        enable_ai_env = str(os.getenv("ENABLE_AI", "0"))
+        enable_ai_env = str(os.getenv("ENABLE_AI", "0")).strip().lower()
         has_key = bool((os.getenv("OPENAI_API_KEY") or "").strip())
         log.info(
-            f"AI      : {'enabled' if enable_ai_env.strip() in {'1','true','yes','on'} else 'disabled'} "
-            f"(ignored in 2.7, ENABLE_AI={enable_ai_env}, key={'yes' if has_key else 'no'})"
+            "AI      : %s (ENABLE_AI=%s, key=%s)",
+            "enabled" if enable_ai_env in {"1", "true", "yes", "on"} else "disabled",
+            enable_ai_env,
+            "yes" if has_key else "no",
         )
 
         # ============================================================
@@ -393,7 +400,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             raise ModuleError("Empty dataset (requirements or tests is empty).")
 
         # ============================================================
-        # ✅ Validation datasets (2.8.1)
+        # ✅ Validation datasets (2.8.1) + mapping models
         # ============================================================
         requirements_m = [Requirement.from_dict(r) for r in requirements]
         tests_m = [
@@ -426,21 +433,42 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             for w in validation_report.warnings:
                 log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
 
-        # Mode bloquant (minimaliste) : on bloque sur erreurs si --fail-on-empty est activé
+        # Mode bloquant : on bloque sur erreurs si --fail-on-empty est activé
         if fail_on_empty:
             raise_if_invalid(validation_report)
 
         # ============================================================
-        # 📤 Outputs (snapshot)
+        # 🔗 Matrice + KPI (2.9 / 2.10)
+        # ============================================================
+        matrix = build_matrix_from_testcases(requirements_m, tests_m)
+        kpi = compute_coverage_kpis(matrix)
+
+        # ============================================================
+        # 🤖 Suggestions IA (optionnel) (2.11)
+        # ============================================================
+        ai_suggestions = suggest_missing_links(
+            requirements=requirements_m,
+            testcases=tests_m,
+            matrix=matrix,
+            verbose=verbose,
+        )
+
+        # ============================================================
+        # 📄 Report bundle (HTML + CSV) (2.12)
         # ============================================================
         out_dir.mkdir(parents=True, exist_ok=True)
-        stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        out_csv = out_dir / f"tctc_snapshot_{stamp}.csv"
-        out_html = out_dir / f"tctc_snapshot_{stamp}.html"
-
-        write_snapshot_csv(out_csv, requirements, tests)
-        write_snapshot_html(out_html, requirements, tests)
+        bundle = generate_report_bundle(
+            requirements=requirements_m,
+            testcases=tests_m,
+            matrix=matrix,
+            kpi=kpi,
+            ai_suggestions=ai_suggestions,
+            out_dir=out_dir,
+            templates_dir="templates/tctc",
+            template_name="report.html",
+            title="APP2 TCTC — Traceability Report",
+        )
 
         payload = {
             "requirements_count": len(requirements),
@@ -448,8 +476,20 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             "requirements_input": str(req_path),
             "tests_input": str(tests_path),
             "out_dir": str(out_dir),
-            "output_csv": str(out_csv),
-            "output_html": str(out_html),
+
+            # 2.12 outputs
+            "report_html": str(bundle.report_html),
+            "traceability_csv": str(bundle.traceability_csv),
+            "kpi_csv": str(bundle.kpi_csv),
+            "ai_suggestions_csv": str(bundle.ai_suggestions_csv) if bundle.ai_suggestions_csv else None,
+
+            # KPI useful fields
+            "coverage_percent": kpi.coverage_percent,
+            "uncovered_requirements": list(kpi.uncovered_requirements),
+            "orphan_tests": list(kpi.orphan_tests),
+            "ai_suggestions_count": len(ai_suggestions),
+
+            # Validation report
             "validation": validation_report.to_dict(),
         }
 
@@ -460,7 +500,6 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     except Exception as e:
         log.exception("Erreur inattendue dans process()")
         raise ModuleError(str(e)) from e
-
 
 
 # ============================================================

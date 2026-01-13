@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!--
+============================================================
+TEMPLATE_HTML5.html (APP2 adaptation)
+------------------------------------------------------------
+Description :
+    Rapport HTML standalone (Jinja2) — APP2 TCTC
+============================================================
+-->
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ title }}</title>
+
+    <!-- Responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Style minimal pro -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        header {
+            font-size: 24px;
+            font-weight: bold;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #888;
+        }
+        .content {
+            padding: 10px 0;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            background: #e9eef6;
+            border: 1px solid #c9d6ea;
+            color: #234;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #d9e2ef;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 12px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #d9e2ef;
+        }
+        th, td {
+            border-bottom: 1px solid #edf2f7;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background: #f0f4fb;
+            font-weight: bold;
+        }
+        .muted { color: #667; font-size: 12px; }
+        .pill-ok {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: #eaf7ee;
+            border: 1px solid #bfe7c9;
+            color: #1b6b2a;
+        }
+        .pill-ko {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: #fdecec;
+            border: 1px solid #f5bcbc;
+            color: #8b1e1e;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    {{ header }}
+    {% if badge %}
+      <span class="badge">{{ badge }}</span>
+    {% endif %}
+</header>
+
+<div class="content">
+
+    <div class="card">
+        <div class="muted">
+            Requirements: {{ counts.requirements }} — Test cases: {{ counts.testcases }}
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>KPI couverture</h3>
+        <table>
+            <tr><th>Métrique</th><th>Valeur</th></tr>
+            <tr><td>Coverage (%)</td><td><strong>{{ kpi.coverage_percent }}</strong></td></tr>
+            <tr><td>Total requirements</td><td>{{ kpi.total_requirements }}</td></tr>
+            <tr><td>Covered requirements</td><td>{{ kpi.covered_requirements | length }}</td></tr>
+            <tr><td>Uncovered requirements</td><td>{{ kpi.uncovered_requirements | length }}</td></tr>
+            <tr><td>Orphan tests</td><td>{{ kpi.orphan_tests | length }}</td></tr>
+            <tr><td>Total links</td><td>{{ kpi.total_links }}</td></tr>
+            <tr><td>Avg tests/requirement</td><td>{{ kpi.avg_tests_per_requirement }}</td></tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <h3>Exigences non couvertes</h3>
+        {% if uncovered %}
+            <ul>
+            {% for r in uncovered %}
+                <li>{{ r }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <span class="pill-ok">Aucune</span>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Tests orphelins</h3>
+        {% if orphans %}
+            <ul>
+            {% for t in orphans %}
+                <li>{{ t }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <span class="pill-ok">Aucun</span>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Matrice Req ↔ Tests (preview)</h3>
+        <table>
+            <tr>
+                <th>Requirement</th>
+                <th>Covered</th>
+                <th>Linked tests</th>
+            </tr>
+            {% for row in matrix_rows %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>
+                    {% if row[1] == "YES" %}
+                        <span class="pill-ok">YES</span>
+                    {% else %}
+                        <span class="pill-ko">NO</span>
+                    {% endif %}
+                </td>
+                <td>{{ row[2] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <div class="muted" style="margin-top:8px;">
+            Export CSV : traceability_matrix.csv
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Suggestions IA (optionnel)</h3>
+        {% if ai_suggestions %}
+            <table>
+                <tr>
+                    <th>Requirement</th>
+                    <th>Suggested test</th>
+                    <th>Confidence</th>
+                    <th>Rationale</th>
+                </tr>
+                {% for s in ai_suggestions %}
+                <tr>
+                    <td>{{ s.requirement_id }}</td>
+                    <td>{{ s.test_id }}</td>
+                    <td>{{ s.confidence if s.confidence is not none else "" }}</td>
+                    <td>{{ s.rationale }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            <div class="muted" style="margin-top:8px;">
+                Export CSV : ai_suggestions.csv
+            </div>
+        {% else %}
+            <span class="pill-ok">IA désactivée ou aucune suggestion</span>
+        {% endif %}
+    </div>
+
+</div>
+
+</body>
+</html>
