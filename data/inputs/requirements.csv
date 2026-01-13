@@ -1,5 +1,5 @@
 requirement_id,title,description,criticality
-REQ-001,Authentification utilisateur,L’utilisateur doit pouvoir se connecter avec un identifiant et un mot de passe valides,HIGH
-REQ-002,Verrouillage après échecs,Le compte doit être verrouillé après 3 tentatives de connexion échouées,HIGH
-REQ-003,Traçabilité des connexions,Le système doit enregistrer la date et l’adresse IP de chaque connexion,MEDIUM
-REQ-004,Export des journaux,L’administrateur doit pouvoir exporter les journaux de connexion en format CSV,LOW
+REQ-001,Authentification utilisateur,L'utilisateur doit pouvoir se connecter avec un identifiant et un mot de passe valides,HIGH
+REQ-002,Verrouillage aprÃ¨s Ã©checs,Le compte doit Ãªtre verrouillÃ© aprÃ¨s 3 tentatives de connexion Ã©chouÃ©es,HIGH
+REQ-003,TraÃ§abilitÃ© des connexions,Le systÃ¨me doit enregistrer la date et l'adresse IP de chaque connexion,MEDIUM
+REQ-004,Export des journaux,L'administrateur doit pouvoir exporter les journaux de connexion en format CSV,LOW
