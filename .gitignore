@@ -22,7 +22,10 @@ htmlcov/
 # Environment files (security)
 # --------------------
 .env
+.env.secret
 .env.*
+*.secret
+
 !.env.example
 
 # --------------------
