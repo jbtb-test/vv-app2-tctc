@@ -39,6 +39,9 @@ Notes :
 
 from __future__ import annotations
 
+from vv_app2_tctc.models import Requirement, TestCase
+from vv_app2_tctc.validators import validate_datasets, raise_if_invalid
+
 # ============================================================
 # 📦 Imports
 # ============================================================
@@ -351,6 +354,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     """
     - Charge requirements.csv + tests.csv
     - Applique validations minimales (présence, non-vide si fail_on_empty)
+    - Valide la cohérence datasets (2.8.1)
     - Génère outputs snapshot (CSV + HTML)
     """
     try:
@@ -379,12 +383,56 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             f"(ignored in 2.7, ENABLE_AI={enable_ai_env}, key={'yes' if has_key else 'no'})"
         )
 
+        # ============================================================
+        # 📥 Load datasets (dicts)
+        # ============================================================
         requirements = load_requirements(req_path)
         tests = load_tests(tests_path)
 
         if fail_on_empty and (not requirements or not tests):
             raise ModuleError("Empty dataset (requirements or tests is empty).")
 
+        # ============================================================
+        # ✅ Validation datasets (2.8.1)
+        # ============================================================
+        requirements_m = [Requirement.from_dict(r) for r in requirements]
+        tests_m = [
+            TestCase.from_dict(
+                {
+                    "test_id": t.get("test_id", ""),
+                    "title": t.get("title", ""),
+                    "description": t.get("description", ""),
+                    "linked_requirements_raw": t.get("linked_requirements", ""),
+                }
+            )
+            for t in tests
+        ]
+
+        validation_report = validate_datasets(requirements_m, tests_m)
+
+        # Logs audit-friendly
+        log.info(
+            "Validation datasets: ok=%s, errors=%d, warnings=%d",
+            validation_report.ok,
+            len(validation_report.errors),
+            len(validation_report.warnings),
+        )
+
+        if validation_report.errors:
+            for e in validation_report.errors:
+                log.error("VAL_ERROR %s: %s | %s", e.code, e.message, e.context)
+
+        if validation_report.warnings:
+            for w in validation_report.warnings:
+                log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
+
+        # Mode bloquant (minimaliste) : on bloque sur erreurs si --fail-on-empty est activé
+        if fail_on_empty:
+            raise_if_invalid(validation_report)
+
+        # ============================================================
+        # 📤 Outputs (snapshot)
+        # ============================================================
         out_dir.mkdir(parents=True, exist_ok=True)
         stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -402,6 +450,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             "out_dir": str(out_dir),
             "output_csv": str(out_csv),
             "output_html": str(out_html),
+            "validation": validation_report.to_dict(),
         }
 
         return ProcessResult(ok=True, payload=payload, message="OK")
@@ -411,6 +460,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     except Exception as e:
         log.exception("Erreur inattendue dans process()")
         raise ModuleError(str(e)) from e
+
 
 
 # ============================================================
