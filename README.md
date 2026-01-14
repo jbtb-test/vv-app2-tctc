@@ -119,3 +119,9 @@ vv-app2-tctc/
 └─ README.md
 ```
 
+### Installation
+
+> Les dépendances et environnements sont gérés via `pyproject.toml`.
+> Les fichiers `requirements*.txt` sont fournis à titre informatif et de traçabilité.
+
+
