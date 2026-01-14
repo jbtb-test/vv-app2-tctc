@@ -16,22 +16,9 @@ Rôle :
         * tctc_report.html
     - Rapport ouvrable localement (standalone)
 
-Architecture :
-    Entrées:
-        - requirements: list[Requirement]
-        - testcases: list[TestCase]
-        - matrix: TraceabilityMatrix
-        - kpi: CoverageKPI
-        - ai_suggestions: list[LinkSuggestion] (optionnel)
-    Sorties:
-        - fichiers dans out_dir
-
-Usage (exemple) :
-    from vv_app2_tctc.report import generate_report_bundle
-    paths = generate_report_bundle(...)
-
 Notes :
     - Aucune dépendance IA ici (on reçoit déjà les suggestions).
+    - 2.12.D : ajout des listes complètes exigences & tests (ID + titre) au rapport.
 ============================================================
 """
 
@@ -112,7 +99,7 @@ def _write_csv(path: Path, header: Sequence[str], rows: Sequence[Sequence[str]])
 
 def _matrix_rows(matrix: Any) -> List[List[str]]:
     """
-    Construit les lignes CSV de la matrice (req -> tests).
+    Construit les lignes CSV/HTML de la matrice (req -> tests).
     """
     req_to_tests = getattr(matrix, "req_to_tests", {})
     rows: List[List[str]] = []
@@ -153,6 +140,35 @@ def _ai_rows(ai_suggestions: Sequence[LinkSuggestion]) -> List[List[str]]:
             ]
         )
     return rows
+
+
+# ============================================================
+# 2.12.D — Helpers pour listes complètes
+# ============================================================
+def _requirements_list(requirements: Sequence[models.Requirement]) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    for r in requirements:
+        out.append(
+            {
+                "id": str(getattr(r, "requirement_id", "")),
+                "title": (getattr(r, "title", "") or "").strip(),
+            }
+        )
+    out.sort(key=lambda x: x["id"])
+    return out
+
+
+def _tests_list(testcases: Sequence[models.TestCase]) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    for t in testcases:
+        out.append(
+            {
+                "id": str(getattr(t, "test_id", "")),
+                "title": (getattr(t, "title", "") or "").strip(),
+            }
+        )
+    out.sort(key=lambda x: x["id"])
+    return out
 
 
 # ============================================================
@@ -223,16 +239,31 @@ def generate_report_bundle(
                 rows=_ai_rows(ai_list),
             )
 
+        # 2.12.D — Full lists (deterministic)
+        requirements_list = _requirements_list(requirements)
+        tests_list = _tests_list(testcases)
+
         # HTML report
-        badge = "AI ENABLED" if ai_list else "DETERMINISTIC"
-        context = {
+        ai_enabled = bool(ai_list)
+        badge = "AI ENABLED" if ai_enabled else "DETERMINISTIC"
+
+        context: Dict[str, Any] = {
             "title": title,
             "header": title,
             "badge": badge,
+            "ai_enabled": ai_enabled,
+            "ai_suggestions_count": len(ai_list),
+
             "kpi": kpi,
             "matrix_rows": _matrix_rows(matrix),
             "uncovered": list(kpi.uncovered_requirements),
             "orphans": list(kpi.orphan_tests),
+
+            # 2.12.D
+            "requirements_list": requirements_list,
+            "tests_list": tests_list,
+
+            # keep existing AI rendering format used by template
             "ai_suggestions": [
                 {
                     "requirement_id": s.requirement_id,
@@ -242,6 +273,7 @@ def generate_report_bundle(
                 }
                 for s in ai_list
             ],
+
             "counts": {
                 "requirements": len(list(requirements)),
                 "testcases": len(list(testcases)),

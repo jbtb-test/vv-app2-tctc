@@ -176,6 +176,21 @@ Description :
         @media (max-width: 900px) {
             .kpi-grid { grid-template-columns: 1fr; }
         }
+
+        /* ============================================================
+           2.12.D — Full lists Req/TC
+           ============================================================ */
+        .list-table { width: 100%; border-collapse: collapse; }
+        .list-table th, .list-table td {
+            border-bottom: 1px solid #edf2f7;
+            padding: 8px 10px;
+            font-size: 13px;
+            text-align: left;
+        }
+        .list-table th { background: #f0f4fb; font-weight: bold; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+        details > summary { cursor: pointer; user-select: none; font-weight: 700; }
+        details summary .muted { font-weight: 400; }
     </style>
 </head>
 
@@ -205,10 +220,13 @@ Description :
     {% set ai_list = (ai_suggestions if ai_suggestions is defined and ai_suggestions else []) %}
     {% set ai_count = (ai_list | length) %}
 
-    {# Detect AI enabled if you have a flag in context; otherwise infer from ai_suggestions presence #}
+    {# Prefer explicit ai_enabled from context if provided #}
     {% set ai_enabled = (ai_enabled if ai_enabled is defined else (ai_count > 0)) %}
 
-    <!-- APP1-style summary (replaces "Requirements: X — Test cases: Y") -->
+    {% set requirements_list = (requirements_list if requirements_list is defined else []) %}
+    {% set tests_list = (tests_list if tests_list is defined else []) %}
+
+    <!-- APP1-style summary -->
     <div class="card summary">
         <div class="summary-top">
             <div>
@@ -273,6 +291,51 @@ Description :
             <tr><td>Total links</td><td>{{ kpi.total_links }}</td></tr>
             <tr><td>Avg tests/requirement</td><td>{{ kpi.avg_tests_per_requirement }}</td></tr>
         </table>
+    </div>
+
+    <!-- 2.12.D: Full lists -->
+    <div class="card">
+        <details open>
+            <summary>Liste complète des exigences <span class="muted">({{ requirements_list | length }})</span></summary>
+            {% if requirements_list %}
+                <table class="list-table" style="margin-top:10px;">
+                    <tr>
+                        <th style="width:160px;">Requirement ID</th>
+                        <th>Title</th>
+                    </tr>
+                    {% for r in requirements_list %}
+                    <tr>
+                        <td class="mono">{{ r.id }}</td>
+                        <td>{{ r.title }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <span class="pill-ko">Aucune exigence disponible</span>
+            {% endif %}
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
+            <summary>Liste complète des tests <span class="muted">({{ tests_list | length }})</span></summary>
+            {% if tests_list %}
+                <table class="list-table" style="margin-top:10px;">
+                    <tr>
+                        <th style="width:160px;">Test ID</th>
+                        <th>Title</th>
+                    </tr>
+                    {% for t in tests_list %}
+                    <tr>
+                        <td class="mono">{{ t.id }}</td>
+                        <td>{{ t.title }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <span class="pill-ko">Aucun test disponible</span>
+            {% endif %}
+        </details>
     </div>
 
     <div class="card">
