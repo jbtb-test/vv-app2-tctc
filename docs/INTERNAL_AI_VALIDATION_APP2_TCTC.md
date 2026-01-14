@@ -107,9 +107,16 @@ Résultat obtenu
 - OPENAI_API_KEY non définie
 
 **Commande**
-```bash
-$env:ENABLE_AI="0"; Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue; pytest -q
+```powershell
+$env:ENABLE_AI="0"
+Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
+
+Attendu :
+- log AI : disabled
+- pas de ai_suggestions.csv
+- report OK, matrice/KPI OK
 
 Comportement
 - Aucune tentative IA
@@ -128,9 +135,17 @@ Résultat
 
 **Commandes (PowerShell)**
 ```powershell
-$env:ENABLE_AI="1"; Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue; pytest -q
-
+$env:ENABLE_AI="1"
+Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
+
+Attendu :
+- log warning “AI requested … missing key -> fallback []”
+- ai_suggestions_count = 0
+- ai_suggestions_csv = None
+- report/matrice/KPI générés identiques
+
 Comportement
 - IA demandée mais clé absente
 - Log warning explicite
@@ -153,20 +168,15 @@ Résultat attendu (R1)
 # Activer l'environnement Python
 .\venv\Scripts\activate.ps1
 
-# Charger les variables OpenAI (clé + modèle) depuis .env.secret
-Get-Content .env.secret | ForEach-Object {
-  if ($_ -match "^\s*#") { return }
-  if ($_ -match "^\s*$") { return }
-  $name, $value = $_ -split "=", 2
-  Set-Item -Path "Env:$name" -Value $value
-}
-
-# Activer IA
+. .\tools\load_env_secret.ps1
 $env:ENABLE_AI="1"
-
-# (Option) lancer la CLI (si report/CLI utilise l'IA)
-# python -m vv_app2_tctc.main --verbose
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
+
+Attendu :
+- ai_suggestions.csv présent
+- ai_suggestions_count > 0 (si dataset déclenche suggestion)
+- report OK
 
 Comportement
 - Matrice + KPI calculés (déterministes)
@@ -176,6 +186,11 @@ Comportement
 Résultat attendu
 - Suggestions possibles pour exigences non couvertes
 - Aucune modification des KPI/matrice
+
+🔒 Sécurité :
+- La clé OpenAI n’est jamais écrite dans la documentation ni dans le code.
+- Elle est uniquement chargée dynamiquement via le fichier `.env.secret`,
+- protégé par `.gitignore` et non versionné.
 
 ###  CAS 4 — IA invalide (clé erronée)
 
@@ -235,7 +250,7 @@ Principes appliqués :
 
 ## Conclusion
 
-L’intégration IA 1.9.2 respecte les objectifs suivants :
+L’intégration IA APP2 TCTC respecte les objectifs suivants :
 - ✅ Robustesse (CAS 0 → CAS 4)
 - ✅ Séparation claire déterministe / IA
 - ✅ IA non critique et non bloquante

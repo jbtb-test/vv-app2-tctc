@@ -94,10 +94,12 @@ Ouvrir le fichier HTML généré dans un navigateur.
 
 ### Option C — Mode IA (optionnel, avancé)
 
+fichier .env.secret présent (non committé)
+
 ```powershell
+. .\tools\load_env_secret.ps1
 $env:ENABLE_AI="1"
-$env:OPENAI_API_KEY="your_key_here"
-python -m vv_app2_tctc.main --verbose
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
 
 > L’IA fournit uniquement des suggestions de liens.
