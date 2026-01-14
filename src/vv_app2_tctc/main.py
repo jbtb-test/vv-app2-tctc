@@ -466,7 +466,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             ai_suggestions=ai_suggestions,
             out_dir=out_dir,
             templates_dir="templates/tctc",
-            template_name="report.html",
+            template_name="tctc_report.html",
             title="APP2 TCTC — Traceability Report",
         )
 

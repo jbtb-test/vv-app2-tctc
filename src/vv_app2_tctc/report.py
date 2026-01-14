@@ -13,7 +13,7 @@ Rôle :
         * traceability_matrix.csv (Req -> Tests)
         * kpi_summary.csv
         * ai_suggestions.csv (si présent)
-        * report.html
+        * tctc_report.html
     - Rapport ouvrable localement (standalone)
 
 Architecture :
@@ -183,7 +183,7 @@ def generate_report_bundle(
     ai_suggestions: Optional[Sequence[LinkSuggestion]] = None,
     out_dir: str | Path = "data/outputs",
     templates_dir: str | Path = "templates/tctc",
-    template_name: str = "report.html",
+    template_name: str = "tctc_report.html",
     title: str = "APP2 TCTC — Traceability Report",
 ) -> ReportPaths:
     """
@@ -249,7 +249,7 @@ def generate_report_bundle(
         }
 
         html = _render_html(tpl_dir, template_name, context)
-        report_html = out_path / "report.html"
+        report_html = out_path / "tctc_report.html"
         report_html.parent.mkdir(parents=True, exist_ok=True)
         report_html.write_text(html, encoding="utf-8")
 
