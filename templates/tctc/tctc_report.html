@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================================
-TEMPLATE_HTML5.html (APP2 adaptation)
+tctc_report.html (APP2 adaptation)
 ------------------------------------------------------------
 Description :
     Rapport HTML standalone (Jinja2) — APP2 TCTC
@@ -34,6 +34,8 @@ Description :
         .content {
             padding: 10px 0;
         }
+
+        /* existing badge (kept) */
         .badge {
             display: inline-block;
             padding: 2px 8px;
@@ -45,6 +47,7 @@ Description :
             margin-left: 10px;
             vertical-align: middle;
         }
+
         .card {
             background: #fff;
             border: 1px solid #d9e2ef;
@@ -69,6 +72,7 @@ Description :
             font-weight: bold;
         }
         .muted { color: #667; font-size: 12px; }
+
         .pill-ok {
             display: inline-block;
             padding: 1px 8px;
@@ -87,6 +91,91 @@ Description :
             border: 1px solid #f5bcbc;
             color: #8b1e1e;
         }
+
+        /* ============================================================
+           APP1-style summary header (2.12.C)
+           ============================================================ */
+        .summary {
+            background: linear-gradient(135deg, rgba(35, 180, 255, .12), rgba(27, 107, 42, .08));
+            border: 1px solid #d9e2ef;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .summary-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .summary-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .summary-sub {
+            margin: 6px 0 0 0;
+            color: #556;
+            font-size: 12px;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .kpi-card {
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid #d9e2ef;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .kpi-label {
+            color: #556;
+            font-size: 12px;
+        }
+        .kpi-value {
+            font-size: 22px;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+        .kpi-hint {
+            color: #667;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #d9e2ef;
+            background: rgba(255, 255, 255, .85);
+            font-size: 12px;
+            color: #234;
+            white-space: nowrap;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            display: inline-block;
+        }
+        .dot-ok { background: #16a34a; }
+        .dot-warn { background: #f59e0b; }
+        .dot-bad { background: #ef4444; }
+        .dot-ai { background: #0ea5e9; }
+
+        @media (max-width: 900px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 
@@ -101,9 +190,74 @@ Description :
 
 <div class="content">
 
-    <div class="card">
-        <div class="muted">
-            Requirements: {{ counts.requirements }} — Test cases: {{ counts.testcases }}
+    {# ------------------------------------------------------------------
+       Robust defaults (avoid template crash if a key is missing)
+       ------------------------------------------------------------------ #}
+    {% set req_count = (counts.requirements if counts is defined and counts.requirements is defined else 0) %}
+    {% set tc_count  = (counts.testcases    if counts is defined and counts.testcases    is defined else 0) %}
+
+    {% set cov = (kpi.coverage_percent if kpi is defined and kpi.coverage_percent is defined else 0) %}
+    {% set total_links = (kpi.total_links if kpi is defined and kpi.total_links is defined else 0) %}
+
+    {% set unc_list = (uncovered if uncovered is defined and uncovered else []) %}
+    {% set orp_list = (orphans   if orphans   is defined and orphans   else []) %}
+
+    {% set ai_list = (ai_suggestions if ai_suggestions is defined and ai_suggestions else []) %}
+    {% set ai_count = (ai_list | length) %}
+
+    {# Detect AI enabled if you have a flag in context; otherwise infer from ai_suggestions presence #}
+    {% set ai_enabled = (ai_enabled if ai_enabled is defined else (ai_count > 0)) %}
+
+    <!-- APP1-style summary (replaces "Requirements: X — Test cases: Y") -->
+    <div class="card summary">
+        <div class="summary-top">
+            <div>
+                <p class="summary-title">Synthèse</p>
+                <p class="summary-sub">
+                    Matrice de traçabilité + KPI couverture.
+                    IA (si activée) = <strong>suggestion-only</strong>, aucun lien n’est appliqué automatiquement.
+                </p>
+            </div>
+
+            <div class="chips">
+                {% if (unc_list | length) == 0 %}
+                    <span class="chip"><span class="dot dot-ok"></span>Uncovered req: 0</span>
+                {% else %}
+                    <span class="chip"><span class="dot dot-bad"></span>Uncovered req: {{ unc_list | length }}</span>
+                {% endif %}
+
+                {% if (orp_list | length) == 0 %}
+                    <span class="chip"><span class="dot dot-ok"></span>Orphan tests: 0</span>
+                {% else %}
+                    <span class="chip"><span class="dot dot-warn"></span>Orphan tests: {{ orp_list | length }}</span>
+                {% endif %}
+
+                {% if ai_enabled %}
+                    <span class="chip"><span class="dot dot-ai"></span>AI: enabled · suggestions: {{ ai_count }}</span>
+                {% else %}
+                    <span class="chip"><span class="dot dot-ok"></span>AI: disabled</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Requirements</div>
+                <div class="kpi-value">{{ req_count }}</div>
+                <div class="kpi-hint">Total in dataset</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Test cases</div>
+                <div class="kpi-value">{{ tc_count }}</div>
+                <div class="kpi-hint">Total in dataset</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Coverage</div>
+                <div class="kpi-value">{{ "%.1f"|format(cov) }}%</div>
+                <div class="kpi-hint">Links: {{ total_links }} · Uncovered: {{ unc_list | length }} · Orphans: {{ orp_list | length }}</div>
+            </div>
         </div>
     </div>
 
