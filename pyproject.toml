@@ -5,7 +5,7 @@
 #   Définition du projet Python et de son mode d’installation.
 #
 #   Ce fichier est utilisé par pip / setuptools pour :
-#     - rendre le package installable (pip install -e .)
+#     - rendre le package installable (pip install -e ".[dev]" ou ".[dev,ai]")
 #     - gérer correctement le layout "src/"
 #     - éviter l’usage de PYTHONPATH
 #
