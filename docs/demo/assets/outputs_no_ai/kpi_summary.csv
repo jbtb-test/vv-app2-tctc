@@ -1,0 +1,9 @@
+metric,value
+total_requirements,4
+total_tests,4
+coverage_percent,75.0
+covered_requirements_count,3
+uncovered_requirements_count,1
+orphan_tests_count,1
+total_links,3
+avg_tests_per_requirement,0.75

@@ -31,3 +31,6 @@
 *.html text eol=lf
 *.css  text eol=lf
 *.js   text eol=lf
+
+# Force textual diff for requirements guide
+requirements.txt text diff

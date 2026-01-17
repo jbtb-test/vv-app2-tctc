@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<!--
+============================================================
+tctc_report.html (APP2 adaptation)
+------------------------------------------------------------
+Description :
+    Rapport HTML standalone (Jinja2) — APP2 TCTC
+============================================================
+-->
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>APP2 TCTC — Traceability Report</title>
+
+    <!-- Responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Style minimal pro -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        header {
+            font-size: 24px;
+            font-weight: bold;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #888;
+        }
+        .content {
+            padding: 10px 0;
+        }
+
+        /* existing badge (kept) */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            background: #e9eef6;
+            border: 1px solid #c9d6ea;
+            color: #234;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #d9e2ef;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 12px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #d9e2ef;
+        }
+        th, td {
+            border-bottom: 1px solid #edf2f7;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background: #f0f4fb;
+            font-weight: bold;
+        }
+        .muted { color: #667; font-size: 12px; }
+
+        .pill-ok {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: #eaf7ee;
+            border: 1px solid #bfe7c9;
+            color: #1b6b2a;
+        }
+        .pill-ko {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: #fdecec;
+            border: 1px solid #f5bcbc;
+            color: #8b1e1e;
+        }
+
+        /* ============================================================
+           APP1-style summary header (2.12.C)
+           ============================================================ */
+        .summary {
+            background: linear-gradient(135deg, rgba(35, 180, 255, .12), rgba(27, 107, 42, .08));
+            border: 1px solid #d9e2ef;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .summary-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .summary-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .summary-sub {
+            margin: 6px 0 0 0;
+            color: #556;
+            font-size: 12px;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .kpi-card {
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid #d9e2ef;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .kpi-label {
+            color: #556;
+            font-size: 12px;
+        }
+        .kpi-value {
+            font-size: 22px;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+        .kpi-hint {
+            color: #667;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #d9e2ef;
+            background: rgba(255, 255, 255, .85);
+            font-size: 12px;
+            color: #234;
+            white-space: nowrap;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            display: inline-block;
+        }
+        .dot-ok { background: #16a34a; }
+        .dot-warn { background: #f59e0b; }
+        .dot-bad { background: #ef4444; }
+        .dot-ai { background: #0ea5e9; }
+
+        @media (max-width: 900px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ============================================================
+           2.12.D — Full lists Req/TC
+           ============================================================ */
+        .list-table { width: 100%; border-collapse: collapse; }
+        .list-table th, .list-table td {
+            border-bottom: 1px solid #edf2f7;
+            padding: 8px 10px;
+            font-size: 13px;
+            text-align: left;
+        }
+        .list-table th { background: #f0f4fb; font-weight: bold; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+        details > summary { cursor: pointer; user-select: none; font-weight: 700; }
+        details summary .muted { font-weight: 400; }
+    </style>
+</head>
+
+<body>
+
+<header>
+    APP2 TCTC — Traceability Report
+    
+      <span class="badge">DETERMINISTIC</span>
+    
+</header>
+
+<div class="content">
+
+    
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    <!-- APP1-style summary -->
+    <div class="card summary">
+        <div class="summary-top">
+            <div>
+                <p class="summary-title">Synthèse</p>
+                <p class="summary-sub">
+                    Matrice de traçabilité + KPI couverture.
+                    IA (si activée) = <strong>suggestion-only</strong>, aucun lien n’est appliqué automatiquement.
+                </p>
+            </div>
+
+            <div class="chips">
+                
+                    <span class="chip"><span class="dot dot-bad"></span>Uncovered req: 1</span>
+                
+
+                
+                    <span class="chip"><span class="dot dot-warn"></span>Orphan tests: 1</span>
+                
+
+                
+                    <span class="chip"><span class="dot dot-ok"></span>AI: disabled</span>
+                
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Requirements</div>
+                <div class="kpi-value">4</div>
+                <div class="kpi-hint">Total in dataset</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Test cases</div>
+                <div class="kpi-value">4</div>
+                <div class="kpi-hint">Total in dataset</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Coverage</div>
+                <div class="kpi-value">75.0%</div>
+                <div class="kpi-hint">Links: 3 · Uncovered: 1 · Orphans: 1</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>KPI couverture</h3>
+        <table>
+            <tr><th>Métrique</th><th>Valeur</th></tr>
+            <tr><td>Coverage (%)</td><td><strong>75.0</strong></td></tr>
+            <tr><td>Total requirements</td><td>4</td></tr>
+            <tr><td>Covered requirements</td><td>3</td></tr>
+            <tr><td>Uncovered requirements</td><td>1</td></tr>
+            <tr><td>Orphan tests</td><td>1</td></tr>
+            <tr><td>Total links</td><td>3</td></tr>
+            <tr><td>Avg tests/requirement</td><td>0.75</td></tr>
+        </table>
+    </div>
+
+    <!-- 2.12.D: Full lists -->
+    <div class="card">
+        <details open>
+            <summary>Liste complète des exigences <span class="muted">(4)</span></summary>
+            
+                <table class="list-table" style="margin-top:10px;">
+                    <tr>
+                        <th style="width:160px;">Requirement ID</th>
+                        <th>Title</th>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-001</td>
+                        <td>Login</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-002</td>
+                        <td>Logout</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-003</td>
+                        <td>Password rules</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-004</td>
+                        <td>Account lockout</td>
+                    </tr>
+                    
+                </table>
+            
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
+            <summary>Liste complète des tests <span class="muted">(4)</span></summary>
+            
+                <table class="list-table" style="margin-top:10px;">
+                    <tr>
+                        <th style="width:160px;">Test ID</th>
+                        <th>Title</th>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">TC-001</td>
+                        <td>Test login OK</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">TC-002</td>
+                        <td>Test logout OK</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">TC-003</td>
+                        <td>Test password length</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">TC-004</td>
+                        <td>Test lockout after failed logins</td>
+                    </tr>
+                    
+                </table>
+            
+        </details>
+    </div>
+
+    <div class="card">
+        <h3>Exigences non couvertes</h3>
+        
+            <ul>
+            
+                <li>REQ-004</li>
+            
+            </ul>
+        
+    </div>
+
+    <div class="card">
+        <h3>Tests orphelins</h3>
+        
+            <ul>
+            
+                <li>TC-004</li>
+            
+            </ul>
+        
+    </div>
+
+    <div class="card">
+        <h3>Matrice Req ↔ Tests (preview)</h3>
+        <table>
+            <tr>
+                <th>Requirement</th>
+                <th>Covered</th>
+                <th>Linked tests</th>
+            </tr>
+            
+            <tr>
+                <td>REQ-001</td>
+                <td>
+                    
+                        <span class="pill-ok">YES</span>
+                    
+                </td>
+                <td>TC-001</td>
+            </tr>
+            
+            <tr>
+                <td>REQ-002</td>
+                <td>
+                    
+                        <span class="pill-ok">YES</span>
+                    
+                </td>
+                <td>TC-002</td>
+            </tr>
+            
+            <tr>
+                <td>REQ-003</td>
+                <td>
+                    
+                        <span class="pill-ok">YES</span>
+                    
+                </td>
+                <td>TC-003</td>
+            </tr>
+            
+            <tr>
+                <td>REQ-004</td>
+                <td>
+                    
+                        <span class="pill-ko">NO</span>
+                    
+                </td>
+                <td></td>
+            </tr>
+            
+        </table>
+        <div class="muted" style="margin-top:8px;">
+            Export CSV : traceability_matrix.csv
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Suggestions IA (optionnel)</h3>
+        
+            <span class="pill-ok">IA désactivée ou aucune suggestion</span>
+        
+    </div>
+
+</div>
+
+</body>
+</html>

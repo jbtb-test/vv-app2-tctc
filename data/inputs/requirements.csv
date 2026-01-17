@@ -1,0 +1,5 @@
+requirement_id,title,description,criticality
+REQ-001,Login,User can login,MEDIUM
+REQ-002,Logout,User can logout,LOW
+REQ-003,Password rules,Password must be >= 12 chars,HIGH
+REQ-004,Account lockout,After 5 failed logins the account is locked,HIGH

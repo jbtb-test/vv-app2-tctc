@@ -1,90 +1,69 @@
-# APP1 QRA — Demo Pack (Recruteur)
+# APP2 TCTC — Demo Pack (Recruteur)
 
 Ce dossier contient une **démonstration complète consultable sans exécuter le code**.
 
 Il permet de comparer :
-- le moteur **déterministe** de qualité des exigences
-- et la version **assistée par IA** (suggestion-only)
+- le mode **déterministe** (référence V&V)
+- et le mode **assisté par IA** (suggestion-only, gouverné)
 
 ---
 
-## 1) Input
+## 1) Inputs (datasets)
 
-Fichier d’entrée commun aux deux modes :
+Exports représentatifs DOORS / Polarion :
 
-- `assets/inputs/demo_input.csv`
-
-Il représente un export typique DOORS / Polarion (exigences système).
-
----
-
-## 2) Mode **Sans IA** — moteur déterministe
-
-Analyse basée **uniquement sur les règles métier QRA** (pas d’IA).
-
-- Rapport HTML :  
-  `assets/outputs_no_ai/rapport.html`
-
-- Export CSV :  
-  `assets/outputs_no_ai/results.csv`
-
-Contenu :
-- scores de qualité
-- statuts OK / À risque
-- défauts détectés (ambiguïté, testabilité, critères d’acceptation…)
-
-➡️ C’est la **référence V&V** (reproductible, auditée, traçable).
+- Exigences : `assets/inputs/requirements.csv`
+- Cas de test : `assets/inputs/tests.csv`
 
 ---
 
-## 3) Mode **Avec IA** — suggestions gouvernées
+## 2) Mode **Sans IA** — matrice + KPI (déterministe)
 
-Même moteur déterministe, avec en plus des **suggestions IA non décisionnelles**.
+Traçabilité et KPI calculés **sans IA**.
 
-- Rapport HTML :  
-  `assets/outputs_ai/rapport.html`
+- Rapport HTML : `assets/outputs_no_ai/tctc_report.html`
+- Matrice CSV : `assets/outputs_no_ai/traceability_matrix.csv`
+- KPI CSV : `assets/outputs_no_ai/kpi_summary.csv`
 
-- Export CSV :  
-  `assets/outputs_ai/results.csv`
-
-Contenu supplémentaire :
-- reformulations proposées
-- exemples de critères d’acceptation
-- compléments de vérifiabilité
-
-➡️ L’IA **n’altère jamais les scores** ni les statuts, elle **propose uniquement**.
+➡️ Référence V&V : **reproductible, auditable, défendable en audit**.
 
 ---
 
-## 4) Gouvernance IA (résumé)
+## 3) Mode **Avec IA** — suggestions gouvernées (optionnel)
 
-- IA **désactivée par défaut**
-- Activation contrôlée via variable d’environnement `ENABLE_AI`
-- Clé absente ou invalide → **fallback strict**
-- Le moteur QRA reste **100 % déterministe**
+Même pipeline, avec en plus des **suggestions IA** (aucune décision automatique).
 
-➡️ L’IA est un **assistant**, jamais un décideur.
+- Rapport HTML : `assets/outputs_ai/tctc_report.html`
+- Matrice CSV : `assets/outputs_ai/traceability_matrix.csv`
+- KPI CSV : `assets/outputs_ai/kpi_summary.csv`
+- (optionnel) Suggestions IA : `assets/outputs_ai/ai_suggestions.csv`
 
----
-
-## 5) Lecture rapide
-
-Pour une revue rapide en entretien :
-
-- Sans IA → `assets/outputs_no_ai/rapport.html`
-- Avec IA → `assets/outputs_ai/rapport.html`
-
-Des captures PNG sont fournies dans :
-`assets/screenshots/`
+➡️ L’IA **n’altère pas** la matrice ni les KPI : elle **propose uniquement**.
 
 ---
 
-## 6) Exécution locale (optionnelle) — outputs runtime
+## 4) Screenshots (PNG)
 
-Si l’on exécute l’outil localement (`python -m vv_app1_qra.main`), il peut générer :
-- des **outputs runtime legacy timestampés** (ex: `qra_output_*.html` / `*.csv`) dans `data/outputs/`
-- et/ou un **rapport stable** (`rapport.html` + `results.csv`) selon le mode de génération.
+Captures prêtes pour aperçu GitHub :
 
-➡️ Pour un recruteur, la référence “sans exécuter” reste :
-- `assets/outputs_no_ai/rapport.html`
-- `assets/outputs_ai/rapport.html`
+- Sans IA : `assets/screenshots/no_ai_report.png`
+- Avec IA : `assets/screenshots/ai_report.png`
+
+---
+
+## 5) Exécution locale (optionnelle) — génération runtime
+
+### Sans IA (déterministe)
+```powershell
+$env:ENABLE_AI="0"
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
+```
+
+### Avec IA (optionnel, avancé)
+```powershell
+. .\tools\load_env_secret.ps1
+$env:ENABLE_AI="1"
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
+```
+
+> ➡️ Scénario 2–3 min : docs/demo_scenario.md
