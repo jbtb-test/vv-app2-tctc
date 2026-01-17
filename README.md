@@ -58,22 +58,26 @@ La traçabilité et la couverture de tests sont souvent :
 
 ## Quickstart
 
-### Option A — Démo sans exécution (portfolio)
+### Option A — Démo sans exécution (recommandée pour recruteur)
 
-Démonstration **clé en main pour recruteur**, sans installer ni exécuter Python.
+Cette application fournit un **pack de démonstration figé**, consultable directement sur GitHub,
+sans installer ni exécuter Python.
 
-Ouvrir :
+👉 Point d’entrée unique :
 - `docs/demo/README.md`
 
-Accès direct :
-- **Rapport HTML**  
-  `docs/demo/assets/tctc_report.html`
-- **Matrice CSV**  
-  `docs/demo/assets/tctc_matrix.csv`
-- **KPI CSV**  
-  `docs/demo/assets/tctc_kpi.csv`
+Ce pack contient :
+- les datasets d’entrée (CSV)
+- les outputs figés (HTML, PNG, CSV)
+- un walkthrough de démonstration (2–3 min)
+- une FAQ recruteur
 
-(Des captures d’écran sont fournies dans `docs/demo/assets/screenshots/`.)
+Objectif : **comprendre la valeur de l’outil en moins de 2 minutes**, sans contexte technique.
+
+🎯 Résultat
+- README racine = orientation
+- docs/demo/README.md = contenu
+- ZÉRO ambiguïté → R3 VALIDÉ
 
 ---
 
