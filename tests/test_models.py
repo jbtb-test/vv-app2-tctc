@@ -1,6 +1,6 @@
 """
 ============================================================
-tests.test_models
+tests.test_models — APP2 TCTC
 ------------------------------------------------------------
 Description :
     Tests unitaires des modèles de domaine APP2 — TCTC.
@@ -11,9 +11,11 @@ Objectifs :
     - Robustesse parsing des liens (multi-séparateurs, dedup, trim)
 
 Usage :
-    pytest -q
+    pytest -q tests/test_models.py
 ============================================================
 """
+
+from __future__ import annotations
 
 import pytest
 
@@ -29,33 +31,41 @@ from vv_app2_tctc.models import (
 
 
 # ============================================================
-# 🧪 Helpers
+# 🔧 Fixtures
 # ============================================================
 
-def test_parse_requirement_ids_nominal_and_dedup_ordered():
-    raw = " REQ-001 | REQ-002 ; REQ-002,REQ-003  ,, "
-    out = parse_requirement_ids(raw)
-    assert out == ["REQ-001", "REQ-002", "REQ-003"]
-
-
-def test_parse_requirement_ids_empty():
-    assert parse_requirement_ids("") == []
-    assert parse_requirement_ids(None) == []
-
-
-# ============================================================
-# 🧪 Requirement
-# ============================================================
-
-def test_requirement_from_dict_nominal_and_aliases():
-    d = {
+@pytest.fixture
+def req_nominal_dict() -> dict:
+    return {
         "req_id": "REQ-001",
         "title": "Title",
         "text": "Desc via alias",
         "criticality": "HIGH",
         "source": "demo",
     }
-    r = Requirement.from_dict(d)
+
+
+# ============================================================
+# 🧪 Tests — Parsing helpers
+# ============================================================
+
+def test_parse_requirement_ids_nominal_and_dedup_ordered() -> None:
+    raw = " REQ-001 | REQ-002 ; REQ-002,REQ-003  ,, "
+    out = parse_requirement_ids(raw)
+    assert out == ["REQ-001", "REQ-002", "REQ-003"]
+
+
+def test_parse_requirement_ids_empty() -> None:
+    assert parse_requirement_ids("") == []
+    assert parse_requirement_ids(None) == []
+
+
+# ============================================================
+# 🧪 Tests — Requirement
+# ============================================================
+
+def test_requirement_from_dict_nominal_and_aliases(req_nominal_dict: dict) -> None:
+    r = Requirement.from_dict(req_nominal_dict)
 
     assert r.requirement_id == "REQ-001"
     assert r.title == "Title"
@@ -63,32 +73,31 @@ def test_requirement_from_dict_nominal_and_aliases():
     assert r.criticality == Criticality.HIGH
     assert r.source == "demo"
 
-    # to_dict stability
     dd = r.to_dict()
     assert dd["requirement_id"] == "REQ-001"
     assert dd["criticality"] == "HIGH"
 
 
-def test_requirement_validation_missing_id():
+def test_requirement_validation_missing_id() -> None:
     with pytest.raises(ValueError):
         Requirement.from_dict({"title": "t", "description": "d"})
 
 
-def test_requirement_validation_missing_title_and_description():
+def test_requirement_validation_missing_title_and_description() -> None:
     with pytest.raises(ValueError):
         Requirement.from_dict({"requirement_id": "REQ-001", "title": "", "description": ""})
 
 
-def test_requirement_invalid_criticality():
+def test_requirement_invalid_criticality() -> None:
     with pytest.raises(ValueError):
         Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "NOPE"})
 
 
 # ============================================================
-# 🧪 TestCase
+# 🧪 Tests — TestCase
 # ============================================================
 
-def test_testcase_from_dict_parses_raw_links():
+def test_testcase_from_dict_parses_raw_links() -> None:
     d = {
         "test_id": "TC-001",
         "title": "t",
@@ -101,7 +110,7 @@ def test_testcase_from_dict_parses_raw_links():
     assert tc.linked_requirements == ["REQ-001", "REQ-002"]
 
 
-def test_testcase_from_dict_links_as_list():
+def test_testcase_from_dict_links_as_list() -> None:
     d = {
         "test_id": "TC-002",
         "title": "t",
@@ -112,26 +121,26 @@ def test_testcase_from_dict_links_as_list():
     assert tc.linked_requirements == ["REQ-001", "REQ-002"]
 
 
-def test_testcase_validation_missing_id():
+def test_testcase_validation_missing_id() -> None:
     with pytest.raises(ValueError):
         TestCase.from_dict({"title": "t", "description": "d"})
 
 
-def test_testcase_validation_missing_title_and_description():
+def test_testcase_validation_missing_title_and_description() -> None:
     with pytest.raises(ValueError):
         TestCase.from_dict({"test_id": "TC-001", "title": "", "description": ""})
 
 
-def test_testcase_from_dict_expects_dict():
+def test_testcase_from_dict_expects_dict() -> None:
     with pytest.raises(ValueError):
         TestCase.from_dict("not-a-dict")  # type: ignore[arg-type]
 
 
 # ============================================================
-# 🧪 TraceLink
+# 🧪 Tests — TraceLink
 # ============================================================
 
-def test_tracelink_from_dict_nominal_and_source_enum():
+def test_tracelink_from_dict_nominal_and_source_enum() -> None:
     d = {
         "requirement_id": "REQ-001",
         "test_id": "TC-001",
@@ -147,12 +156,12 @@ def test_tracelink_from_dict_nominal_and_source_enum():
     assert dd["source"] == "AI"
 
 
-def test_tracelink_validation_confidence_range():
+def test_tracelink_validation_confidence_range() -> None:
     with pytest.raises(ValueError):
         TraceLink.from_dict({"requirement_id": "REQ-001", "test_id": "TC-001", "confidence": 1.5})
 
 
-def test_tracelink_validation_missing_ids():
+def test_tracelink_validation_missing_ids() -> None:
     with pytest.raises(ValueError):
         TraceLink.from_dict({"test_id": "TC-001"})
     with pytest.raises(ValueError):
@@ -160,10 +169,10 @@ def test_tracelink_validation_missing_ids():
 
 
 # ============================================================
-# 🧪 CoverageKpi
+# 🧪 Tests — CoverageKpi
 # ============================================================
 
-def test_coveragekpi_nominal():
+def test_coveragekpi_nominal() -> None:
     k = CoverageKpi(
         requirements_total=10,
         requirements_covered=7,
@@ -176,7 +185,7 @@ def test_coveragekpi_nominal():
     assert d["coverage_percent"] == 70.0
 
 
-def test_coveragekpi_invalid_percent():
+def test_coveragekpi_invalid_percent() -> None:
     with pytest.raises(ValueError):
         CoverageKpi(
             requirements_total=1,
@@ -188,7 +197,7 @@ def test_coveragekpi_invalid_percent():
         )
 
 
-def test_coveragekpi_invalid_negative_int():
+def test_coveragekpi_invalid_negative_int() -> None:
     with pytest.raises(ValueError):
         CoverageKpi(
             requirements_total=-1,

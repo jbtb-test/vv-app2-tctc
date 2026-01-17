@@ -13,7 +13,7 @@ Objectifs :
     - Vérifier cas limite (liens vides)
 
 Usage :
-    pytest -q
+    pytest -q tests/test_kpi.py
 ============================================================
 """
 
@@ -29,6 +29,7 @@ from vv_app2_tctc.traceability import build_matrix_from_testcases
 # ============================================================
 # 🔧 Fixtures
 # ============================================================
+
 @pytest.fixture
 def req_001() -> models.Requirement:
     return models.Requirement.from_dict(
@@ -46,6 +47,7 @@ def req_002() -> models.Requirement:
 # ============================================================
 # 🧪 Tests
 # ============================================================
+
 def test_kpi_nominal_one_covered_one_uncovered(req_001: models.Requirement, req_002: models.Requirement) -> None:
     tcs = [
         models.TestCase.from_dict(
@@ -63,7 +65,6 @@ def test_kpi_nominal_one_covered_one_uncovered(req_001: models.Requirement, req_
 
 
 def test_kpi_no_requirements() -> None:
-    # test lié à une exigence inexistante -> le KPI doit rester robuste
     tcs = [
         models.TestCase.from_dict(
             {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": "REQ-001"}
