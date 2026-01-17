@@ -1,0 +1,5 @@
+requirement_id,covered,linked_test_ids
+REQ-001,YES,TC-001
+REQ-002,YES,TC-002
+REQ-003,YES,TC-003
+REQ-004,NO,
