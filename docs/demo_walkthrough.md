@@ -21,11 +21,11 @@ Il permet de démontrer la valeur de l’outil **sans exécuter le code**.
 Ouvrir directement les artefacts figés :
 
 ### Mode sans IA (déterministe)
-- HTML : `docs/demo/assets/outputs_no_ai/tctc_report.html`
+- HTML : `docs/demo/assets/outputs_no_ai/rapport.html`
 - PNG : `docs/demo/assets/screenshots/no_ai_report.png`
 
 ### Mode avec IA (suggestion-only)
-- HTML : `docs/demo/assets/outputs_ai/tctc_report.html`
+- HTML : `docs/demo/assets/outputs_ai/rapport.html`
 - PNG : `docs/demo/assets/screenshots/ai_report.png`
 
 ### Points à commenter (1–2 minutes)

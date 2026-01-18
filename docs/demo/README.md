@@ -21,7 +21,7 @@ Exports représentatifs DOORS / Polarion :
 
 Traçabilité et KPI calculés **sans IA**.
 
-- Rapport HTML : `assets/outputs_no_ai/tctc_report.html`
+- Rapport HTML : `assets/outputs_no_ai/rapport.html`
 - Matrice CSV : `assets/outputs_no_ai/traceability_matrix.csv`
 - KPI CSV : `assets/outputs_no_ai/kpi_summary.csv`
 
@@ -33,7 +33,7 @@ Traçabilité et KPI calculés **sans IA**.
 
 Même pipeline, avec en plus des **suggestions IA** (aucune décision automatique).
 
-- Rapport HTML : `assets/outputs_ai/tctc_report.html`
+- Rapport HTML : `assets/outputs_ai/raport.html`
 - Matrice CSV : `assets/outputs_ai/traceability_matrix.csv`
 - KPI CSV : `assets/outputs_ai/kpi_summary.csv`
 - (optionnel) Suggestions IA : `assets/outputs_ai/ai_suggestions.csv`
