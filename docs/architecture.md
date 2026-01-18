@@ -31,7 +31,9 @@ Principes directeurs :
 - **Aucune dépendance IA par défaut**
 - **Exécution locale reproductible**
 
-L’architecture privilégie la robustesse, l’auditabilité et la démonstrabilité.
+L’architecture privilégie la robustesse, l’auditabilité et la démonstrabilité,
+plutôt que l’optimisation prématurée.
+
 
 ---
 
@@ -39,6 +41,7 @@ L’architecture privilégie la robustesse, l’auditabilité et la démonstrabi
 
 L’application suit un **pipeline linéaire**, exécutable en ligne de commande,
 inspiré d’une logique V-cycle (outillage, règles testées, résultats vérifiables).
+
 
 ```text
 CSV exigences        CSV cas de test
@@ -105,7 +108,7 @@ Aucune logique métier n’est appliquée à ce stade.
 	- représenter un lien de traçabilité
 Les modèles sont simples, explicites et testables.
 
-###  4.4 Validation des datasets
+###  4.4 Validation des datasets (déterministe)
 
 - Implémentée dans validators.py
 - Vérifie notamment :
@@ -115,7 +118,7 @@ Les modèles sont simples, explicites et testables.
 
 Les données invalides sont rejetées avant toute analyse.
 
-###  4.5 Matrice de traçabilité
+###  4.5 Matrice de traçabilité (cœur déterministe)
 
 - Implémentée dans traceability.py
 - Construit la relation Requirement ↔ TestCase
