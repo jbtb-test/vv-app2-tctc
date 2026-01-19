@@ -353,18 +353,48 @@ def write_snapshot_html(out_path: Path, requirements: List[Dict[str, str]], test
 """
     out_path.write_text(html, encoding="utf-8")
 
+def _write_fallback_snapshot(
+    out_dir: Path,
+    requirements: List[Dict[str, str]],
+    tests: List[Dict[str, str]],
+    reason: str,
+) -> Dict[str, str]:
+    """
+    Always-best-effort fallback outputs.
+    Generates a minimal HTML+CSV snapshot so the run leaves artifacts even if
+    matrix/KPI/report steps fail.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "fallback_snapshot.csv"
+    html_path = out_dir / "fallback_snapshot.html"
+
+    try:
+        write_snapshot_csv(csv_path, requirements, tests)
+        write_snapshot_html(html_path, requirements, tests)
+        log.warning("Fallback snapshot generated (%s)", reason)
+        return {"fallback_csv": str(csv_path), "fallback_html": str(html_path)}
+    except Exception as e:
+        # Never block on fallback itself
+        log.exception("Fallback snapshot generation failed (%s): %s", reason, e)
+        return {}
+
 
 # ============================================================
 # 🔧 Fonction principale
 # ============================================================
 def process(data: Dict[str, Any]) -> ProcessResult:
     """
-    - Charge requirements.csv + tests.csv
-    - Applique validations minimales (présence, non-vide si fail_on_empty)
-    - Valide la cohérence datasets (2.8.1)
-    - Construit matrice (2.9) + KPI (2.10)
-    - (Optionnel) Génère suggestions IA (2.11)
-    - Génère rapport HTML + CSV (2.12)
+    Orchestrates APP2 TCTC pipeline:
+      - Load requirements.csv + tests.csv
+      - Validate dataset structure and consistency (2.8.1)
+      - Build traceability matrix (2.9) + compute KPIs (2.10)
+      - (Optional) Generate AI suggestions (2.11) — never blocking
+      - Generate report bundle (HTML + CSV) (2.12)
+
+    Orchestration guarantees (5.1 hardening):
+      - Output directory is created early
+      - On fatal paths after loading datasets, a fallback snapshot (HTML+CSV) is generated best-effort
+      - Validation errors are fatal only when --fail-on-empty is enabled
     """
     try:
         if not isinstance(data, dict):
@@ -386,7 +416,6 @@ def process(data: Dict[str, Any]) -> ProcessResult:
 
         enable_ai_env = str(os.getenv("ENABLE_AI", "0")).strip().lower()
         has_key = bool((os.getenv("OPENAI_API_KEY") or "").strip())
-
         ai_effective = is_ai_enabled()
         log.info(
             "AI      : %s (ENABLE_AI=%s, key=%s)",
@@ -395,14 +424,22 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             "yes" if has_key else "no",
         )
 
+        # Always create output dir early to guarantee artifacts on failure paths
+        out_dir.mkdir(parents=True, exist_ok=True)
+        fallback_artifacts: Dict[str, str] = {}
+
         # ============================================================
         # 📥 Load datasets (dicts)
         # ============================================================
         requirements = load_requirements(req_path)
         tests = load_tests(tests_path)
 
-        if fail_on_empty and (not requirements or not tests):
-            raise ModuleError("Empty dataset (requirements or tests is empty).")
+        if (not requirements or not tests):
+            msg = f"Empty dataset: requirements={len(requirements)} tests={len(tests)}"
+            if fail_on_empty:
+                fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason=msg)
+                raise ModuleError(msg)
+            log.warning("%s (continuing, --fail-on-empty is OFF)", msg)
 
         # ============================================================
         # ✅ Validation datasets (2.8.1) + mapping models
@@ -430,28 +467,38 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             len(validation_report.warnings),
         )
 
-        if validation_report.errors:
-            for e in validation_report.errors:
-                log.error("VAL_ERROR %s: %s | %s", e.code, e.message, e.context)
+        for e in validation_report.errors:
+            log.error("VAL_ERROR %s: %s | %s", e.code, e.message, e.context)
 
-        if validation_report.warnings:
-            for w in validation_report.warnings:
-                log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
+        for w in validation_report.warnings:
+            log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
 
-        # Mode bloquant : on bloque sur erreurs si --fail-on-empty est activé
-        if fail_on_empty:
+        # Policy:
+        # - warnings never block
+        # - validation errors block only if --fail-on-empty is enabled
+        if validation_report.errors and fail_on_empty:
+            fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason="validation_errors")
             raise_if_invalid(validation_report)
 
+        if validation_report.errors and not fail_on_empty:
+            log.warning("Validation errors detected but continuing (non-blocking mode). Outputs may be incomplete.")
+
         # ============================================================
-        # 🔗 Matrice + KPI (2.9 / 2.10)
+        # 🔗 Matrice + KPI (2.9 / 2.10) — guarded
         # ============================================================
-        matrix = build_matrix_from_testcases(requirements_m, tests_m)
-        kpi = compute_coverage_kpis(matrix)
+        try:
+            matrix = build_matrix_from_testcases(requirements_m, tests_m)
+            kpi = compute_coverage_kpis(matrix)
+        except Exception as e:
+            fallback_artifacts = _write_fallback_snapshot(
+                out_dir, requirements, tests, reason=f"matrix/kpi_failed: {e}"
+            )
+            raise ModuleError(f"Matrix/KPI step failed: {e}") from e
 
         # ============================================================
         # 🤖 Suggestions IA (optionnel) (2.11) — never blocking
         # ============================================================
-        ai_suggestions = []
+        ai_suggestions: List[Dict[str, Any]] = []
         if is_ai_enabled():
             try:
                 ai_suggestions = (
@@ -467,23 +514,24 @@ def process(data: Dict[str, Any]) -> ProcessResult:
                 log.warning("AI suggestion step failed -> fallback [] (%s)", e)
                 ai_suggestions = []
 
-
         # ============================================================
-        # 📄 Report bundle (HTML + CSV) (2.12)
+        # 📄 Report bundle (HTML + CSV) (2.12) — guarded
         # ============================================================
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        bundle = generate_report_bundle(
-            requirements=requirements_m,
-            testcases=tests_m,
-            matrix=matrix,
-            kpi=kpi,
-            ai_suggestions=ai_suggestions,
-            out_dir=out_dir,
-            templates_dir="templates/tctc",
-            template_name="tctc_report.html",
-            title="APP2 TCTC — Traceability Report",
-        )
+        try:
+            bundle = generate_report_bundle(
+                requirements=requirements_m,
+                testcases=tests_m,
+                matrix=matrix,
+                kpi=kpi,
+                ai_suggestions=ai_suggestions,
+                out_dir=out_dir,
+                templates_dir="templates/tctc",
+                template_name="tctc_report.html",
+                title="APP2 TCTC — Traceability Report",
+            )
+        except Exception as e:
+            fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason=f"report_failed: {e}")
+            raise ModuleError(f"Report bundle generation failed: {e}") from e
 
         payload = {
             "requirements_count": len(requirements),
@@ -506,6 +554,9 @@ def process(data: Dict[str, Any]) -> ProcessResult:
 
             # Validation report
             "validation": validation_report.to_dict(),
+
+            # Fallback artifacts (if any)
+            "fallback": fallback_artifacts or None,
         }
 
         return ProcessResult(ok=True, payload=payload, message="OK")
@@ -515,6 +566,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     except Exception as e:
         log.exception("Erreur inattendue dans process()")
         raise ModuleError(str(e)) from e
+
 
 
 # ============================================================
