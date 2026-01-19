@@ -146,20 +146,34 @@ def test_generate_report_bundle_with_ai_writes_ai_csv_and_badge(tmp_path: Path, 
     assert "TC-001" in html
 
 
-def test_generate_report_bundle_bad_templates_dir_raises_report_error(tmp_path: Path) -> None:
+def test_generate_report_bundle_bad_templates_dir_falls_back_to_html(tmp_path: Path, caplog) -> None:
     reqs = [_req("REQ-001")]
     tcs = [_tc("TC-001", "TC 1", "REQ-001")]
     matrix = build_matrix_from_testcases(reqs, tcs)
     kpi = compute_coverage_kpis(matrix)
 
-    # templates_dir invalide -> ReportError attendu
-    with pytest.raises(Exception):
-        generate_report_bundle(
+    bad_tpl_dir = tmp_path / "does_not_exist"
+
+    with caplog.at_level("WARNING"):
+        paths = generate_report_bundle(
             reqs,
             tcs,
             matrix,
             kpi,
             out_dir=tmp_path,
-            templates_dir=tmp_path / "does_not_exist",
+            templates_dir=bad_tpl_dir,
             template_name="tctc_report.html",
         )
+
+    # CSV must exist
+    assert paths.traceability_csv.exists()
+    assert paths.kpi_csv.exists()
+
+    # HTML must exist (fallback)
+    assert paths.report_html.exists()
+    html = paths.report_html.read_text(encoding="utf-8", errors="replace")
+    assert "fallback" in html.lower()
+
+    # Warning must be explicit
+    assert any("templates_dir not found" in r.message for r in caplog.records)
+
