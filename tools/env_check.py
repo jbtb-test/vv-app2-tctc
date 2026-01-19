@@ -206,12 +206,45 @@ def render_markdown(info: EnvInfo, *, redact_paths: bool = False) -> str:
     return "\n".join(lines)
 
 
-def is_healthy_minimal(info: EnvInfo) -> bool:
+def is_healthy(info: EnvInfo, *, fail_on: str = "venv") -> bool:
     """
-    Critère minimal : venv détecté.
-    (On garde ce critère simple pour éviter faux négatifs.)
+    Health criteria:
+      - venv: requires venv detected
+      - pip : requires pip detected
+      - root: requires project root detected
+      - all : requires all above
     """
-    return bool(info.is_venv)
+    venv_ok = bool(info.is_venv)
+    pip_ok = info.pip_version != "unknown"
+    root_ok = bool(info.project_root)
+
+    if fail_on == "venv":
+        return venv_ok
+    if fail_on == "pip":
+        return pip_ok
+    if fail_on == "root":
+        return root_ok
+    return venv_ok and pip_ok and root_ok
+
+def is_healthy(info: EnvInfo, *, fail_on: str = "venv") -> bool:
+    """
+    Health criteria:
+      - venv: requires venv detected
+      - pip : requires pip detected
+      - root: requires project root detected
+      - all : requires all above
+    """
+    venv_ok = bool(info.is_venv)
+    pip_ok = info.pip_version != "unknown"
+    root_ok = bool(info.project_root)
+
+    if fail_on == "venv":
+        return venv_ok
+    if fail_on == "pip":
+        return pip_ok
+    if fail_on == "root":
+        return root_ok
+    return venv_ok and pip_ok and root_ok
 
 
 def write_text(path: Path, content: str) -> None:
@@ -234,6 +267,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--print", action="store_true", help="Print report to stdout")
     p.add_argument("--quiet", action="store_true", help="No stdout (useful in CI)")
     p.add_argument("--redact-paths", action="store_true", help="Mask personal paths for interview/demo")
+    p.add_argument("--fail-on", type=str, default="venv", choices=["venv", "pip", "root", "all"], help="Health criteria for exit code (default: venv).",)
     return p
 
 
@@ -259,7 +293,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Fallback : remplace les chars non encodables.
             print(md.encode("utf-8", errors="replace").decode("utf-8", errors="replace"))
 
-    return 0 if is_healthy_minimal(info) else 2
+    return 0 if is_healthy(info, fail_on=args.fail_on) else 2
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
