@@ -4,38 +4,40 @@
 ============================================================
 vv_app2_tctc.main
 ------------------------------------------------------------
-Description :
-    APP2 — TCTC (Traceability & Test Coverage Tool)
-    Étape 2.7 — CLI main
+APP2 — TCTC (Traceability & Test Coverage Tool)
 
-Rôle :
-    - Fournir une CLI robuste (MVP) :
-        * lecture CSV exigences + CSV cas de test
-        * validation minimale des entrées (présence + headers)
-        * orchestration (préparation des données)
-        * génération d’outputs démontrables (CSV + HTML "snapshot")
-    - Aucune dépendance aux modules futurs (models/validators/traceability/kpi/ia/report),
-      ceux-ci arriveront aux étapes 2.8+.
+Purpose:
+    CLI entry point that:
+      - Loads requirements and test cases from CSV datasets
+      - Validates dataset structure and consistency
+      - Builds a traceability matrix (requirements ↔ test cases)
+      - Computes coverage KPIs (coverage %, uncovered requirements, orphan tests)
+      - Generates a report bundle (HTML + CSV artifacts)
 
-Architecture (repo) :
-    - Code : src/vv_app2_tctc/
-    - Tests : tests/
-    - Données : data/
-    - Docs : docs/
-    - Templates : templates/
+AI assistance (optional, suggestion-only):
+    - Enabled only if is_ai_enabled() returns True (env + key)
+    - Produces suggestions (no automatic modification of datasets/traceability)
+    - Never blocks execution: failures are caught and fallback to []
 
-Usage CLI :
-    python -m vv_app2_tctc.main
-    python -m vv_app2_tctc.main --requirements data/inputs/requirements.csv --tests data/inputs/tests.csv
-    python -m vv_app2_tctc.main --out-dir data/outputs --verbose
-    python -m vv_app2_tctc.main --fail-on-empty
+Inputs (CSV):
+    - Requirements: requirement_id, title, description, criticality (tolerant aliases)
+    - Tests: test_id, title, description, linked_requirements (tolerant aliases)
 
-Notes :
-    - L’IA est volontairement ABSENTE en 2.7 (ENABLE_AI ignoré ici).
-    - Les KPI et la matrice complète arrivent en 2.9 / 2.10.
-    - Le HTML généré ici est un rendu standalone minimal (ouvrable localement).
+Outputs (out-dir):
+    - HTML report
+    - Traceability CSV
+    - KPI CSV
+    - AI suggestions CSV (optional)
+
+Exit / failure policy:
+    - Missing input files or decoding issues raise ModuleError
+    - If --fail-on-empty is enabled:
+        * empty datasets raise an error
+        * validation errors raise an error (raise_if_invalid)
+    - Otherwise: warnings are logged and outputs may be empty but generated.
 ============================================================
 """
+
 
 from __future__ import annotations
 
@@ -522,31 +524,42 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="vv-app2-tctc",
         description=(
-            "APP2 TCTC — CLI: read requirements/tests CSV, validate minimal schema, "
-            "and generate snapshot outputs (CSV + HTML). "
-            "Traceability matrix and KPI are implemented in later steps."
+            "APP2 TCTC — Traceability & Test Coverage Tool.\n\n"
+            "Reads requirements/tests CSV datasets, validates consistency, builds a traceability matrix,\n"
+            "computes coverage KPIs, and generates a report bundle (HTML + CSV artifacts).\n\n"
+            "AI assistance is optional, suggestion-only, and never blocks execution."
         ),
+        epilog=(
+            "Notes:\n"
+            "- Outputs are generated in --out-dir (HTML + CSV).\n"
+            "- AI is enabled only when is_ai_enabled() is True; failures fallback to [].\n"
+            "- --fail-on-empty enforces stricter behavior (empty datasets and validation errors become fatal)."
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     p.add_argument(
         "--requirements",
         default="data/inputs/requirements.csv",
-        help="Path to requirements CSV (default: data/inputs/requirements.csv)",
+        help="Path to requirements CSV (default: data/inputs/requirements.csv).",
     )
     p.add_argument(
         "--tests",
         default="data/inputs/tests.csv",
-        help="Path to tests CSV (default: data/inputs/tests.csv)",
+        help="Path to tests CSV (default: data/inputs/tests.csv).",
     )
     p.add_argument(
         "--out-dir",
         default=os.getenv("OUTPUT_DIR", "data/outputs"),
-        help="Output directory (default: OUTPUT_DIR or data/outputs)",
+        help="Output directory (default: OUTPUT_DIR or data/outputs).",
     )
     p.add_argument(
         "--fail-on-empty",
         action="store_true",
-        help="Fail (non-zero) if requirements or tests dataset is empty.",
+        help=(
+            "Fail (non-zero) if datasets are empty.\n"
+            "When enabled, validation errors are also fatal."
+        ),
     )
     p.add_argument(
         "--verbose",
@@ -555,6 +568,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     return p
+
 
 
 def main() -> None:
