@@ -33,7 +33,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+try:
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+except Exception:  # pragma: no cover (dépend de l'environnement)
+    Environment = None  # type: ignore[assignment]
+    FileSystemLoader = None  # type: ignore[assignment]
+    select_autoescape = None  # type: ignore[assignment]
+
 
 from vv_app2_tctc import models
 from vv_app2_tctc.ia_assistant import LinkSuggestion
@@ -174,17 +180,101 @@ def _tests_list(testcases: Sequence[models.TestCase]) -> List[Dict[str, str]]:
 # ============================================================
 # 🔧 HTML rendering
 # ============================================================
+def _render_fallback_html(context: Dict[str, Any], reason: str) -> str:
+    """
+    Fallback HTML minimal (sans Jinja2), pour garantir un artefact ouvrable localement.
+    """
+    title = str(context.get("title", "APP2 TCTC — Report"))
+    badge = str(context.get("badge", "FALLBACK"))
+    counts = context.get("counts", {}) or {}
+    req_n = counts.get("requirements", 0)
+    tc_n = counts.get("testcases", 0)
+    ai_n = int(context.get("ai_suggestions_count", 0) or 0)
+
+    # KPI: on évite d'afficher un objet brut; on met quelques champs clés si présents
+    kpi = context.get("kpi", None)
+    kpi_lines: List[str] = []
+    for key in ["total_requirements", "total_tests", "coverage_percent", "total_links", "avg_tests_per_requirement"]:
+        if kpi is not None and hasattr(kpi, key):
+            kpi_lines.append(f"<li><b>{key}</b>: {getattr(kpi, key)}</li>")
+
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{title}</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 24px; }}
+    .badge {{ display: inline-block; padding: 4px 10px; border-radius: 6px; background: #333; color: #fff; }}
+    .warn {{ background: #b00020; }}
+    code {{ background: #f2f2f2; padding: 2px 6px; border-radius: 4px; }}
+  </style>
+</head>
+<body>
+  <h1>{title}</h1>
+  <p class="badge warn">{badge} (fallback)</p>
+
+  <h2>Summary</h2>
+  <ul>
+    <li><b>requirements</b>: {req_n}</li>
+    <li><b>testcases</b>: {tc_n}</li>
+    <li><b>ai_suggestions_count</b>: {ai_n}</li>
+  </ul>
+
+  <h2>KPI (partial)</h2>
+  <ul>
+    {''.join(kpi_lines) if kpi_lines else '<li>No KPI fields available</li>'}
+  </ul>
+
+  <h2>Reason</h2>
+  <p><code>{reason}</code></p>
+
+  <p>Note: Full HTML rendering was not available. CSV exports were still generated.</p>
+</body>
+</html>
+"""
+
+
 def _render_html(
     templates_dir: Path,
     template_name: str,
     context: Dict[str, Any],
 ) -> str:
-    env = Environment(
-        loader=FileSystemLoader(str(templates_dir)),
-        autoescape=select_autoescape(["html", "xml"]),
-    )
-    tpl = env.get_template(template_name)
-    return tpl.render(**context)
+    """
+    Render HTML via Jinja2 if available and template exists.
+    Fallback to a minimal standalone HTML otherwise.
+    """
+    # Jinja2 optional
+    if Environment is None or FileSystemLoader is None or select_autoescape is None:
+        reason = "Jinja2 not available"
+        log.warning("%s -> using fallback HTML", reason)
+        return _render_fallback_html(context, reason=reason)
+
+    # Templates dir / file checks
+    if not templates_dir.exists() or not templates_dir.is_dir():
+        reason = f"templates_dir not found: {templates_dir}"
+        log.warning("%s -> using fallback HTML", reason)
+        return _render_fallback_html(context, reason=reason)
+
+    tpl_path = templates_dir / template_name
+    if not tpl_path.exists() or not tpl_path.is_file():
+        reason = f"template not found: {tpl_path}"
+        log.warning("%s -> using fallback HTML", reason)
+        return _render_fallback_html(context, reason=reason)
+
+    try:
+        env = Environment(
+            loader=FileSystemLoader(str(templates_dir)),
+            autoescape=select_autoescape(["html", "xml"]),
+        )
+        tpl = env.get_template(template_name)
+        return tpl.render(**context)
+    except Exception as e:
+        reason = f"Jinja2 render failed: {e}"
+        log.warning("%s -> using fallback HTML", reason)
+        return _render_fallback_html(context, reason=reason)
+
 
 
 # ============================================================
@@ -205,6 +295,12 @@ def generate_report_bundle(
     """
     Génère exports CSV + rapport HTML.
 
+    Durcissement 5.3:
+      - out_dir créé tôt
+      - CSV toujours générés (matrix + KPI, AI optionnel)
+      - HTML toujours généré : rendu Jinja2 si possible, sinon fallback HTML minimal
+      - Logging explicite (machine vierge : templates/jinja2 absents)
+
     Returns:
         ReportPaths: chemins des fichiers générés.
     """
@@ -212,12 +308,27 @@ def generate_report_bundle(
         out_path = Path(out_dir)
         tpl_dir = Path(templates_dir)
 
+        # Always create output dir early
+        out_path.mkdir(parents=True, exist_ok=True)
+
+        # Stabiliser les séquences (évite len(list(...)) multiples)
+        req_list = list(requirements)
+        tc_list = list(testcases)
+        ai_list = list(ai_suggestions or [])
+
+        # Pré-calculs déterministes (évite double appel)
+        matrix_rows = _matrix_rows(matrix)
+
+        # ============================================================
+        # CSV exports (must succeed)
+        # ============================================================
+
         # CSV: matrix
         trace_csv = out_path / "traceability_matrix.csv"
         _write_csv(
             trace_csv,
             header=["requirement_id", "covered", "linked_test_ids"],
-            rows=_matrix_rows(matrix),
+            rows=matrix_rows,
         )
 
         # CSV: KPI
@@ -230,7 +341,6 @@ def generate_report_bundle(
 
         # CSV: AI (optional)
         ai_csv: Optional[Path] = None
-        ai_list = list(ai_suggestions or [])
         if ai_list:
             ai_csv = out_path / "ai_suggestions.csv"
             _write_csv(
@@ -239,11 +349,15 @@ def generate_report_bundle(
                 rows=_ai_rows(ai_list),
             )
 
+        # ============================================================
         # 2.12.D — Full lists (deterministic)
-        requirements_list = _requirements_list(requirements)
-        tests_list = _tests_list(testcases)
+        # ============================================================
+        requirements_list = _requirements_list(req_list)
+        tests_list = _tests_list(tc_list)
 
-        # HTML report
+        # ============================================================
+        # HTML report (never missing: Jinja2 if possible else fallback)
+        # ============================================================
         ai_enabled = bool(ai_list)
         badge = "AI ENABLED" if ai_enabled else "DETERMINISTIC"
 
@@ -253,16 +367,13 @@ def generate_report_bundle(
             "badge": badge,
             "ai_enabled": ai_enabled,
             "ai_suggestions_count": len(ai_list),
-
             "kpi": kpi,
-            "matrix_rows": _matrix_rows(matrix),
-            "uncovered": list(kpi.uncovered_requirements),
-            "orphans": list(kpi.orphan_tests),
-
+            "matrix_rows": matrix_rows,
+            "uncovered": list(getattr(kpi, "uncovered_requirements", [])),
+            "orphans": list(getattr(kpi, "orphan_tests", [])),
             # 2.12.D
             "requirements_list": requirements_list,
             "tests_list": tests_list,
-
             # keep existing AI rendering format used by template
             "ai_suggestions": [
                 {
@@ -273,19 +384,26 @@ def generate_report_bundle(
                 }
                 for s in ai_list
             ],
-
             "counts": {
-                "requirements": len(list(requirements)),
-                "testcases": len(list(testcases)),
+                "requirements": len(req_list),
+                "testcases": len(tc_list),
             },
         }
 
+        # _render_html() must be hardened to fallback to minimal HTML when needed
         html = _render_html(tpl_dir, template_name, context)
+
         report_html = out_path / "tctc_report.html"
-        report_html.parent.mkdir(parents=True, exist_ok=True)
         report_html.write_text(html, encoding="utf-8")
 
-        log.info("Report bundle generated in: %s", out_path.resolve())
+        log.info(
+            "Report bundle generated: html=%s trace=%s kpi=%s ai=%s",
+            report_html.name,
+            trace_csv.name,
+            kpi_csv.name,
+            ai_csv.name if ai_csv else "none",
+        )
+        log.info("Report bundle output dir: %s", out_path.resolve())
 
         return ReportPaths(
             out_dir=out_path,
@@ -298,6 +416,7 @@ def generate_report_bundle(
     except Exception as e:
         log.exception("Report generation failed")
         raise ReportError(str(e)) from e
+
 
 
 # ============================================================
