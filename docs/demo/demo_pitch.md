@@ -65,7 +65,7 @@ APP2 — TCTC génère automatiquement :
 - un rapport HTML lisible immédiatement.
 
 Un rapport HTML de démonstration est fourni dans  
-`docs/demo/assets/outputs_no_ai/rapport.html`  
+`docs/demo/assets/outputs_no_ai/tctc_report.html`  
 (voir `docs/demo/README.md`).
 
 ---

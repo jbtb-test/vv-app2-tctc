@@ -20,11 +20,11 @@ Cette étape montre la valeur de l’outil **sans dépendre de l’environnement
 ### Action
 
 1) **Sans IA (déterministe)**
-- Ouvrir : `docs/demo/assets/outputs_no_ai/rapport.html`
+- Ouvrir : `docs/demo/assets/outputs_no_ai/tctc_report.html`
 - Ou aperçu PNG : `docs/demo/assets/screenshots/no_ai_report.png`
 
 2) **Avec IA (suggestion-only)**
-- Ouvrir : `docs/demo/assets/outputs_ai/rapport.html`
+- Ouvrir : `docs/demo/assets/outputs_ai/tctc_report.html`
 - Ou aperçu PNG : `docs/demo/assets/screenshots/ai_report.png`
 
 ### À montrer
