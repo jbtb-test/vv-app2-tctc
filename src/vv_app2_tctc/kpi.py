@@ -45,7 +45,14 @@ from typing import Any, Dict, List, Optional, Sequence
 # Import "soft" : on ne dépend que de l'interface runtime de TraceabilityMatrix
 # (pas besoin d'importer Requirement/TestCase ici)
 
-
+# ============================================================
+# 🔎 Public exports
+# ============================================================
+__all__ = [
+    "KPIError",
+    "CoverageKPI",
+    "compute_coverage_kpis",
+]
 # ============================================================
 # 🧾 Logging (local, autonome)
 # ============================================================
