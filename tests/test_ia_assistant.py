@@ -81,3 +81,33 @@ def test_ai_enabled_but_openai_missing_returns_empty(monkeypatch: pytest.MonkeyP
 
     out = suggest_missing_links(reqs, tcs, matrix)
     assert out == []
+
+def test_ai_invalid_matrix_none_returns_empty(caplog) -> None:
+    from vv_app2_tctc.ia_assistant import suggest_missing_links
+    from vv_app2_tctc.models import Requirement, TestCase
+
+    reqs = [Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"})]
+    tcs = [TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""})]
+
+    with caplog.at_level("WARNING"):
+        out = suggest_missing_links(reqs, tcs, matrix=None)
+
+    assert out == []
+    assert any("matrix is None" in r.message for r in caplog.records)
+
+
+def test_ai_invalid_matrix_missing_method_returns_empty(caplog) -> None:
+    from vv_app2_tctc.ia_assistant import suggest_missing_links
+    from vv_app2_tctc.models import Requirement, TestCase
+
+    class DummyMatrix:
+        pass
+
+    reqs = [Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"})]
+    tcs = [TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""})]
+
+    with caplog.at_level("WARNING"):
+        out = suggest_missing_links(reqs, tcs, matrix=DummyMatrix())
+
+    assert out == []
+    assert any("uncovered_requirements" in r.message for r in caplog.records)

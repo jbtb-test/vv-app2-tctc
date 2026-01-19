@@ -89,3 +89,47 @@ def test_kpi_empty_links_handled(req_001: models.Requirement) -> None:
     assert kpi.covered_requirements == []
     assert kpi.uncovered_requirements == ["REQ-001"]
     assert kpi.coverage_percent == 0.0
+
+def test_kpi_all_covered_no_orphans() -> None:
+    from vv_app2_tctc.models import Requirement, TestCase
+    from vv_app2_tctc.traceability import build_matrix_from_testcases
+    from vv_app2_tctc.kpi import compute_coverage_kpis
+
+    reqs = [
+        Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}),
+        Requirement.from_dict({"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "LOW"}),
+    ]
+    tcs = [
+        TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": "REQ-001"}),
+        TestCase.from_dict({"test_id": "TC-002", "title": "t", "description": "d", "linked_requirements_raw": "REQ-002"}),
+    ]
+
+    m = build_matrix_from_testcases(reqs, tcs)
+    kpi = compute_coverage_kpis(m)
+
+    assert kpi.coverage_percent == 100.0
+    assert list(kpi.uncovered_requirements) == []
+    assert list(kpi.orphan_tests) == []
+    assert kpi.total_links == 2
+
+def test_kpi_tests_present_but_no_links_all_uncovered_all_orphans() -> None:
+    from vv_app2_tctc.models import Requirement, TestCase
+    from vv_app2_tctc.traceability import build_matrix_from_testcases
+    from vv_app2_tctc.kpi import compute_coverage_kpis
+
+    reqs = [
+        Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}),
+        Requirement.from_dict({"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "LOW"}),
+    ]
+    tcs = [
+        TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""}),
+        TestCase.from_dict({"test_id": "TC-002", "title": "t", "description": "d", "linked_requirements_raw": ""}),
+    ]
+
+    m = build_matrix_from_testcases(reqs, tcs)
+    kpi = compute_coverage_kpis(m)
+
+    assert kpi.coverage_percent == 0.0
+    assert set(kpi.uncovered_requirements) == {"REQ-001", "REQ-002"}
+    assert set(kpi.orphan_tests) == {"TC-001", "TC-002"}
+    assert kpi.total_links == 0
