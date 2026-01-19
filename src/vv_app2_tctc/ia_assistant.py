@@ -104,7 +104,7 @@ def _get_model() -> str:
     """
     Modèle par défaut. Ajustable via OPENAI_MODEL.
     """
-    return (os.getenv("OPENAI_MODEL") or "gpt-5").strip()
+    return (os.getenv("OPENAI_MODEL") or "gpt-4.1-mini").strip()
 
 
 def _safe_parse_json(text: str) -> Dict[str, Any]:

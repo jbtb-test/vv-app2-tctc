@@ -270,16 +270,6 @@ class TestCase:
         )
 
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "test_id": self.test_id,
-            "title": self.title,
-            "description": self.description,
-            "linked_requirements_raw": self.linked_requirements_raw,
-            "linked_requirements": list(self.linked_requirements),
-            "meta": dict(self.meta),
-        }
-
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "TestCase":
         if not isinstance(d, dict):

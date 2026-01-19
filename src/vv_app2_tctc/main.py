@@ -44,8 +44,9 @@ from vv_app2_tctc.validators import validate_datasets, raise_if_invalid
 
 from vv_app2_tctc.traceability import build_matrix_from_testcases
 from vv_app2_tctc.kpi import compute_coverage_kpis
-from vv_app2_tctc.ia_assistant import suggest_missing_links
+from vv_app2_tctc.ia_assistant import is_ai_enabled, suggest_missing_links
 from vv_app2_tctc.report import generate_report_bundle
+
 # ============================================================
 # 📦 Imports
 # ============================================================
@@ -383,9 +384,11 @@ def process(data: Dict[str, Any]) -> ProcessResult:
 
         enable_ai_env = str(os.getenv("ENABLE_AI", "0")).strip().lower()
         has_key = bool((os.getenv("OPENAI_API_KEY") or "").strip())
+
+        ai_effective = is_ai_enabled()
         log.info(
             "AI      : %s (ENABLE_AI=%s, key=%s)",
-            "enabled" if enable_ai_env in {"1", "true", "yes", "on"} else "disabled",
+            "enabled" if ai_effective else "disabled",
             enable_ai_env,
             "yes" if has_key else "no",
         )
@@ -444,14 +447,24 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         kpi = compute_coverage_kpis(matrix)
 
         # ============================================================
-        # 🤖 Suggestions IA (optionnel) (2.11)
+        # 🤖 Suggestions IA (optionnel) (2.11) — never blocking
         # ============================================================
-        ai_suggestions = suggest_missing_links(
-            requirements=requirements_m,
-            testcases=tests_m,
-            matrix=matrix,
-            verbose=verbose,
-        )
+        ai_suggestions = []
+        if is_ai_enabled():
+            try:
+                ai_suggestions = (
+                    suggest_missing_links(
+                        requirements=requirements_m,
+                        testcases=tests_m,
+                        matrix=matrix,
+                        verbose=verbose,
+                    )
+                    or []
+                )
+            except Exception as e:
+                log.warning("AI suggestion step failed -> fallback [] (%s)", e)
+                ai_suggestions = []
+
 
         # ============================================================
         # 📄 Report bundle (HTML + CSV) (2.12)
