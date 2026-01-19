@@ -109,12 +109,14 @@ def _get_model() -> str:
 
 def _safe_parse_json(text: str) -> Dict[str, Any]:
     """
-    Parse JSON robuste : lève ModuleError si invalide.
+    Parse JSON robuste : NEVER RAISE.
+    Retourne {} si invalide (fallback contrôlé).
     """
     try:
         return json.loads(text)
     except Exception as e:
-        raise ModuleError(f"Invalid JSON from AI: {e}") from e
+        log.warning("AI JSON parse failed -> fallback {} (%s)", e)
+        return {}
 
 
 def _build_prompt(
@@ -213,118 +215,136 @@ def suggest_missing_links(
     """
     Propose des liens manquants pour les exigences non couvertes.
 
-    Stratégie :
-    - Détecter exigences non couvertes via matrix.uncovered_requirements()
-    - Pour chaque exigence non couverte, demander à l’IA de proposer
-      des couples (requirement_id -> test_id) parmi une liste de tests candidats.
-
-    Fallback :
-    - IA OFF / pas de clé / SDK absent / erreur API / JSON invalide => []
+    Contrat (5.2 hardening):
+    - is_ai_enabled() est l'unique source de vérité pour activer l'IA
+    - NEVER RAISE : toute erreur => log explicite + fallback []
+    - Suggestion-only : ne modifie jamais datasets/matrice
 
     Returns:
         Liste de LinkSuggestion (peut être vide).
     """
-    if verbose:
-        log.setLevel(logging.DEBUG)
-
-    # Validation légère (contrat minimal)
-    if matrix is None:
-        raise ModuleError("Invalid input: 'matrix' is None.")
-    if not hasattr(matrix, "uncovered_requirements") or not callable(getattr(matrix, "uncovered_requirements")):
-        raise ModuleError("Invalid input: 'matrix' must expose method uncovered_requirements().")
-
-    if not is_ai_enabled():
-        enable_ai_env = (os.getenv("ENABLE_AI", "0") or "").strip().lower()
-        has_key = bool((os.getenv("OPENAI_API_KEY") or "").strip())
-        if enable_ai_env in {"1", "true", "yes", "on"} and not has_key:
-            log.warning("AI requested (ENABLE_AI=1) but OPENAI_API_KEY missing -> fallback []")
-        else:
-            log.debug("AI disabled -> fallback []")
-        return []
-
     try:
-        from openai import OpenAI  # type: ignore
-    except Exception:
-        log.warning("openai-python not installed -> fallback []")
-        return []
+        if verbose:
+            log.setLevel(logging.DEBUG)
 
-    # Uncovered req IDs (déterministe)
-    uncovered_ids = sorted(str(x) for x in matrix.uncovered_requirements())
-    if not uncovered_ids:
-        return []
+        # ------------------------------------------------------------
+        # Guard rails: invalid inputs -> fallback []
+        # ------------------------------------------------------------
+        if matrix is None:
+            log.warning("AI disabled: invalid input (matrix is None) -> fallback []")
+            return []
 
-    # Index req_id -> Requirement
-    req_by_id: Dict[str, models.Requirement] = {str(r.requirement_id): r for r in requirements}
+        if not hasattr(matrix, "uncovered_requirements") or not callable(getattr(matrix, "uncovered_requirements")):
+            log.warning("AI disabled: invalid input (matrix has no uncovered_requirements()) -> fallback []")
+            return []
 
-    used_model = (model or _get_model()).strip()
-    client = OpenAI()
+        # ------------------------------------------------------------
+        # Single source of truth for AI enablement
+        # ------------------------------------------------------------
+        if not is_ai_enabled():
+            enable_ai_env = (os.getenv("ENABLE_AI", "0") or "").strip().lower()
+            has_key = bool((os.getenv("OPENAI_API_KEY") or "").strip())
+            if enable_ai_env in {"1", "true", "yes", "on"} and not has_key:
+                log.warning("AI requested (ENABLE_AI=1) but OPENAI_API_KEY missing -> fallback []")
+            else:
+                log.debug("AI disabled -> fallback []")
+            return []
 
-    suggestions: List[LinkSuggestion] = []
-
-    # Candidates tests (une seule sélection pour rester stable + limiter tokens)
-    candidates = _extract_candidate_tests(
-        testcases,
-        matrix,
-        prefer_orphans=prefer_orphan_tests,
-        max_candidates=max_candidate_tests,
-    )
-
-    for req_id in uncovered_ids:
-        req = req_by_id.get(req_id)
-        if req is None:
-            # dataset incohérent mais non bloquant pour l’assistant
-            log.debug("Uncovered requirement id not found in provided requirements: %s", req_id)
-            continue
-
-        prompt = _build_prompt(req=req, candidate_tests=candidates, max_suggestions=max_suggestions_per_req)
-
+        # ------------------------------------------------------------
+        # Optional dependency
+        # ------------------------------------------------------------
         try:
-            resp = client.responses.create(model=used_model, input=prompt)
+            from openai import OpenAI  # type: ignore
+        except Exception:
+            log.warning("openai-python not installed -> fallback []")
+            return []
 
-            output_text = (getattr(resp, "output_text", None) or "").strip()
-            if not output_text:
-                output_text = str(resp).strip()
+        # Uncovered req IDs (deterministic)
+        try:
+            uncovered_ids = sorted(str(x) for x in matrix.uncovered_requirements())
+        except Exception as e:
+            log.warning("AI disabled: matrix.uncovered_requirements() failed -> fallback [] (%s)", e)
+            return []
+
+        if not uncovered_ids:
+            log.debug("No uncovered requirements -> no AI suggestions")
+            return []
+
+        # Index req_id -> Requirement
+        req_by_id: Dict[str, models.Requirement] = {str(r.requirement_id): r for r in requirements}
+
+        used_model = (model or _get_model()).strip()
+        client = OpenAI()
+
+        suggestions: List[LinkSuggestion] = []
+
+        # Candidates tests (stable selection)
+        candidates = _extract_candidate_tests(
+            testcases,
+            matrix,
+            prefer_orphans=prefer_orphan_tests,
+            max_candidates=max_candidate_tests,
+        )
+        candidate_ids = {str(tc.test_id) for tc in candidates}
+
+        for req_id in uncovered_ids:
+            req = req_by_id.get(req_id)
+            if req is None:
+                log.debug("Uncovered requirement id not found in requirements dataset: %s", req_id)
+                continue
+
+            prompt = _build_prompt(req=req, candidate_tests=candidates, max_suggestions=max_suggestions_per_req)
 
             try:
+                resp = client.responses.create(model=used_model, input=prompt)
+
+                output_text = (getattr(resp, "output_text", None) or "").strip()
+                if not output_text:
+                    output_text = str(resp).strip()
+
                 data = _safe_parse_json(output_text)
-            except Exception as e:
-                log.warning("AI returned invalid JSON -> skip (%s)", e)
-                continue
+                raw = data.get("links", [])
 
-            raw = data.get("links", [])
-            if not isinstance(raw, list):
-                log.warning("AI JSON invalid: 'links' is not a list -> skip")
-                continue
-
-            for item in raw[:max_suggestions_per_req]:
-                if not isinstance(item, dict):
-                    continue
-                rid = (item.get("requirement_id") or "").strip() or req_id
-                tid = (item.get("test_id") or "").strip()
-                if not tid:
+                if not isinstance(raw, list):
+                    log.warning("AI JSON invalid: 'links' is not a list -> skip")
                     continue
 
-                # Sécurité : n’accepter que des IDs présents dans les candidats
-                if tid not in {str(tc.test_id) for tc in candidates}:
-                    continue
+                for item in raw[:max_suggestions_per_req]:
+                    if not isinstance(item, dict):
+                        continue
 
-                rationale = (item.get("rationale") or "").strip()
-                conf = item.get("confidence", None)
+                    rid = (item.get("requirement_id") or "").strip() or req_id
+                    tid = (item.get("test_id") or "").strip()
+                    if not tid:
+                        continue
 
-                suggestions.append(
-                    LinkSuggestion(
-                        requirement_id=rid,
-                        test_id=tid,
-                        rationale=rationale,
-                        confidence=conf if isinstance(conf, (int, float)) else None,
+                    # Safety: accept only known candidate IDs
+                    if tid not in candidate_ids:
+                        continue
+
+                    rationale = (item.get("rationale") or "").strip()
+                    conf = item.get("confidence", None)
+
+                    suggestions.append(
+                        LinkSuggestion(
+                            requirement_id=rid,
+                            test_id=tid,
+                            rationale=rationale,
+                            confidence=conf if isinstance(conf, (int, float)) else None,
+                        )
                     )
-                )
 
-        except Exception as e:
-            log.warning("AI call failed -> skip (%s)", e)
-            continue
+            except Exception as e:
+                log.warning("AI call failed -> skip (%s)", e)
+                continue
 
-    return suggestions
+        return suggestions
+
+    except Exception as e:
+        # Ultimate safety net: never block caller
+        log.exception("AI assistant unexpected failure -> fallback [] (%s)", e)
+        return []
+
 
 
 # ============================================================
