@@ -88,9 +88,9 @@ Ouvrir :
 
 Accès direct :
 - **Sans IA (moteur déterministe)**  
-  `docs/demo/assets/outputs_no_ai/rapport.html`
+  `docs/demo/assets/outputs_no_ai/tctc_report.html`
 - **Avec IA (suggestions gouvernées)**  
-  `docs/demo/assets/outputs_ai/rapport.html`
+  `docs/demo/assets/outputs_ai/tctc_report.html`
 
 Des captures d’écran sont disponibles dans :
 `docs/demo/assets/screenshots/`
@@ -109,9 +109,10 @@ python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
 
 Génère automatiquement :
-- `data/outputs/tctc_matrix_<timestamp>.csv`
-- `data/outputs/tctc_kpi_<timestamp>.csv`
-- `data/outputs/tctc_report_<timestamp>.html`
+- `data/outputs/traceability_matrix.csv`
+- `data/outputs/kpi_summary.csv`
+- `data/outputs/tctc_report.html`
+- `data/outputs/ai_suggestions.csv` (optionnel, si IA effective + suggestions)
 
 Ouvrir le fichier HTML généré dans un navigateur.
 
