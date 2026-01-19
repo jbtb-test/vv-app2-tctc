@@ -1,2 +1,2 @@
 requirement_id,test_id,confidence,rationale
-REQ-004,TC-004,0.95,Attempts 5 incorrect logins and verifies the account is locked.
+REQ-004,TC-004,0.95,Performs 5 failed login attempts and verifies the account is locked immediately afterward.

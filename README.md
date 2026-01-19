@@ -1,5 +1,4 @@
 # APP2 — TCTC (Traceability & Test Coverage Tool)
-## Traceability & Coverage Assistant — Requirements ↔ Tests
 
 ## TL;DR — Démo en 1 phrase
 Outil de **traçabilité Exigences ↔ Cas de test** (type DOORS / Polarion) qui construit automatiquement une **matrice de traçabilité**,
@@ -56,6 +55,25 @@ La traçabilité et la couverture de tests sont souvent :
 
 ---
 
+## Installation (local)
+
+```powershell
+python -m venv venv
+# Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -e ".[dev]"
+# option IA
+pip install -e ".[dev,ai]"
+```
+
+## Tests (CI-friendly)
+```bash
+pytest -vv
+```
+
+---
+
 ## Quickstart
 
 ### Option A — Démo sans exécution (recommandée pour recruteur)
@@ -63,42 +81,45 @@ La traçabilité et la couverture de tests sont souvent :
 Cette application fournit un **pack de démonstration figé**, consultable directement sur GitHub,
 sans installer ni exécuter Python.
 
-👉 Point d’entrée unique :
+Démonstration **clé en main pour recruteur**, sans installer ni exécuter Python.
+
+Ouvrir :
 - `docs/demo/README.md`
 
-Ce pack contient :
-- les datasets d’entrée (CSV)
-- les outputs figés (HTML, PNG, CSV)
-- un walkthrough de démonstration (2–3 min)
-- une FAQ recruteur
+Accès direct :
+- **Sans IA (moteur déterministe)**  
+  `docs/demo/assets/outputs_no_ai/tctc_report.html`
+- **Avec IA (suggestions gouvernées)**  
+  `docs/demo/assets/outputs_ai/tctc_report.html`
 
-Objectif : **comprendre la valeur de l’outil en moins de 2 minutes**, sans contexte technique.
+Des captures d’écran sont disponibles dans :
+`docs/demo/assets/screenshots/`
 
-🎯 Résultat
-- README racine = orientation
-- docs/demo/README.md = contenu
-- ZÉRO ambiguïté → R3 VALIDÉ
+👉 Point d’entrée unique :
+- `docs/demo/README.md`
 
 ---
 
 ### Option B — Reproduire localement (sans IA, recommandé)
 
-Mode nominal, 100 % déterministe.
+Cette option correspond au mode nominal de l’outil (100 % déterministe).
 
 ```bash
-python -m vv_app2_tctc.main --verbose
+python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
 
 Génère automatiquement :
-- `data/outputs/tctc_matrix_<timestamp>.csv'
-- `data/outputs/tctc_kpi_<timestamp>.csv`
-- `data/outputs/tctc_report_<timestamp>.html`
+- `data/outputs/traceability_matrix.csv`
+- `data/outputs/kpi_summary.csv`
+- `data/outputs/tctc_report.html`
+- `data/outputs/ai_suggestions.csv` (optionnel, si IA effective + suggestions)
 
 Ouvrir le fichier HTML généré dans un navigateur.
 
 ### Option C — Mode IA (optionnel, avancé)
 
-fichier .env.secret présent (non committé)
+Copier `.env.example` en `.env` et renseigner les valeurs localement.  
+⚠️ Ne jamais committer `.env` / `.env.*` (seul `.env.example` est versionné).
 
 ```powershell
 . .\tools\load_env_secret.ps1
@@ -122,6 +143,8 @@ vv-app2-tctc/
 │  └─ demo/
 └─ README.md
 ```
+
+---
 
 ### Installation
 

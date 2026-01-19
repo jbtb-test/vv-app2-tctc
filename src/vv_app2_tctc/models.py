@@ -45,7 +45,9 @@ __all__ = [
     "TestCase",
     "TraceLink",
     "CoverageKpi",
+    "build_links_from_testcases",
 ]
+
 
 # ============================================================
 # 🧱 Enums
@@ -269,41 +271,6 @@ class TestCase:
             meta=dict(d.get("meta", {}) or {}),
         )
 
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "test_id": self.test_id,
-            "title": self.title,
-            "description": self.description,
-            "linked_requirements_raw": self.linked_requirements_raw,
-            "linked_requirements": list(self.linked_requirements),
-            "meta": dict(self.meta),
-        }
-
-    @staticmethod
-    def from_dict(d: Dict[str, Any]) -> "TestCase":
-        if not isinstance(d, dict):
-            raise ValueError("TestCase.from_dict expects a dict.")
-
-        raw = d.get("linked_requirements_raw", "")
-        if not raw:
-            # compat dataset v2.6 / main.py
-            raw = d.get("linked_requirements", "") if isinstance(d.get("linked_requirements"), str) else ""
-
-        links = d.get("linked_requirements", [])
-        if isinstance(links, str):
-            links_list = parse_requirement_ids(links)
-        else:
-            links_list = [ _s(x) for x in (links or []) if _s(x) ]
-
-        return TestCase(
-            test_id=d.get("test_id", "") or d.get("tc_id", "") or d.get("id", ""),
-            title=d.get("title", ""),
-            description=d.get("description", "") or d.get("text", ""),
-            linked_requirements_raw=raw,
-            linked_requirements=links_list,
-            meta=dict(d.get("meta", {}) or {}),
-        )
 
 
 @dataclass(frozen=True)

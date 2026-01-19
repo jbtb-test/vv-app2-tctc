@@ -74,3 +74,32 @@ def test_write_json_creates_valid_json(tmp_path: Path) -> None:
     assert out.exists()
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data == payload
+
+def test_render_markdown_redacts_user_path() -> None:
+    from tools.env_check import EnvInfo, render_markdown
+
+    info = EnvInfo(
+        timestamp_utc="2026-01-01T00:00:00Z",
+        cwd=r"C:\Users\bobby\work",
+        project_root=r"C:\Users\bobby\work\vv-app2-tctc",
+        python_version="3.14.0",
+        python_executable=r"C:\Users\bobby\work\vv-app2-tctc\venv\Scripts\python.exe",
+        pip_version="9.9.9",
+        is_venv=True,
+        venv_prefix=r"C:\Users\bobby\work\vv-app2-tctc\venv",
+        os_name="Windows",
+        os_release="10",
+        platform="Windows-10",
+    )
+
+    md = render_markdown(info, redact_paths=True)
+    assert "<user>" in md
+
+
+def test_main_exit_code_with_fail_on_option() -> None:
+    from tools.env_check import main
+    # Doit retourner un int, ne pas lever
+    rc = main(["--print", "--quiet", "--fail-on", "venv"])
+    assert isinstance(rc, int)
+
+

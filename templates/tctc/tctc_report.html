@@ -5,6 +5,7 @@ tctc_report.html (APP2 adaptation)
 ------------------------------------------------------------
 Description :
     Rapport HTML standalone (Jinja2) — APP2 TCTC
+    UX hardened (5.6): clearer KPI tables, light colors, anchors, responsive tables
 ============================================================
 -->
 <html lang="fr">
@@ -17,88 +18,110 @@ Description :
 
     <!-- Style minimal pro -->
     <style>
+        :root{
+            --bg: #f5f7fa;
+            --text: #1f2937;
+            --muted: #667;
+            --card: #ffffff;
+            --border: #d9e2ef;
+            --border-soft: #edf2f7;
+            --head: #f0f4fb;
+            --ok-bg: #eaf7ee; --ok-br: #bfe7c9; --ok-tx: #1b6b2a;
+            --ko-bg: #fdecec; --ko-br: #f5bcbc; --ko-tx: #8b1e1e;
+            --warn-bg:#fff6e6; --warn-br:#f7d7a8; --warn-tx:#8a4b00;
+            --ai:#0ea5e9;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background: #f5f7fa;
-            color: #333;
+            padding: 18px;
+            background: var(--bg);
+            color: var(--text);
         }
+
         header {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             border-bottom: 2px solid #888;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
         }
-        .content {
-            padding: 10px 0;
-        }
+        .header-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .content { padding: 6px 0; max-width: 1100px; margin: 0 auto; }
 
         /* existing badge (kept) */
         .badge {
             display: inline-block;
-            padding: 2px 8px;
+            padding: 2px 10px;
             border-radius: 12px;
             font-size: 12px;
             background: #e9eef6;
             border: 1px solid #c9d6ea;
             color: #234;
-            margin-left: 10px;
             vertical-align: middle;
         }
 
         .card {
-            background: #fff;
-            border: 1px solid #d9e2ef;
-            border-radius: 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             padding: 12px 14px;
             margin: 12px 0;
+            box-shadow: 0 1px 0 rgba(0,0,0,.02);
         }
+
+        .muted { color: var(--muted); font-size: 12px; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+
+        /* pills */
+        .pill-ok, .pill-ko, .pill-warn {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            border: 1px solid;
+        }
+        .pill-ok { background: var(--ok-bg); border-color: var(--ok-br); color: var(--ok-tx); }
+        .pill-ko { background: var(--ko-bg); border-color: var(--ko-br); color: var(--ko-tx); }
+        .pill-warn { background: var(--warn-bg); border-color: var(--warn-br); color: var(--warn-tx); }
+
+        /* tables */
+        .table-wrap { overflow:auto; border-radius: 10px; border: 1px solid var(--border); }
         table {
             width: 100%;
             border-collapse: collapse;
             background: #fff;
-            border: 1px solid #d9e2ef;
+            min-width: 640px;
         }
         th, td {
-            border-bottom: 1px solid #edf2f7;
+            border-bottom: 1px solid var(--border-soft);
             padding: 8px 10px;
             text-align: left;
             font-size: 13px;
+            vertical-align: top;
         }
         th {
-            background: #f0f4fb;
+            background: var(--head);
             font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
-        .muted { color: #667; font-size: 12px; }
+        tr:nth-child(even) td { background: #fbfdff; }
+        td.num { text-align:right; font-variant-numeric: tabular-nums; }
+        td strong { font-weight:800; }
 
-        .pill-ok {
-            display: inline-block;
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            background: #eaf7ee;
-            border: 1px solid #bfe7c9;
-            color: #1b6b2a;
-        }
-        .pill-ko {
-            display: inline-block;
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            background: #fdecec;
-            border: 1px solid #f5bcbc;
-            color: #8b1e1e;
-        }
-
-        /* ============================================================
-           APP1-style summary header (2.12.C)
-           ============================================================ */
+        /* Summary header */
         .summary {
             background: linear-gradient(135deg, rgba(35, 180, 255, .12), rgba(27, 107, 42, .08));
-            border: 1px solid #d9e2ef;
-            border-radius: 10px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 12px 14px;
         }
         .summary-top {
@@ -108,16 +131,9 @@ Description :
             gap: 12px;
             flex-wrap: wrap;
         }
-        .summary-title {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 700;
-        }
-        .summary-sub {
-            margin: 6px 0 0 0;
-            color: #556;
-            font-size: 12px;
-        }
+        .summary-title { margin: 0; font-size: 16px; font-weight: 800; }
+        .summary-sub { margin: 6px 0 0 0; color: #556; font-size: 12px; max-width: 60ch; }
+
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -126,81 +142,101 @@ Description :
         }
         .kpi-card {
             background: rgba(255, 255, 255, .9);
-            border: 1px solid #d9e2ef;
-            border-radius: 10px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 10px 12px;
         }
-        .kpi-label {
-            color: #556;
-            font-size: 12px;
+        .kpi-label { color: #556; font-size: 12px; }
+        .kpi-value { font-size: 22px; font-weight: 900; margin-top: 2px; }
+        .kpi-hint { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+        /* progress bar */
+        .progress {
+            height: 10px;
+            background: rgba(0,0,0,.06);
+            border-radius: 999px;
+            overflow:hidden;
+            margin-top: 8px;
+            border: 1px solid rgba(0,0,0,.06);
         }
-        .kpi-value {
-            font-size: 22px;
-            font-weight: 800;
-            margin-top: 2px;
+        .progress > span{
+            display:block;
+            height:100%;
+            width: 0%;
+            background: #16a34a;
         }
-        .kpi-hint {
-            color: #667;
-            font-size: 11px;
-            margin-top: 2px;
-        }
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
+        .progress .bad { background: #ef4444; }
+        .progress .warn { background: #f59e0b; }
+        .progress .ai { background: var(--ai); }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .chip {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 6px 10px;
             border-radius: 999px;
-            border: 1px solid #d9e2ef;
+            border: 1px solid var(--border);
             background: rgba(255, 255, 255, .85);
             font-size: 12px;
             color: #234;
             white-space: nowrap;
         }
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            display: inline-block;
-        }
+        .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
         .dot-ok { background: #16a34a; }
         .dot-warn { background: #f59e0b; }
         .dot-bad { background: #ef4444; }
-        .dot-ai { background: #0ea5e9; }
+        .dot-ai { background: var(--ai); }
 
-        @media (max-width: 900px) {
-            .kpi-grid { grid-template-columns: 1fr; }
+        /* mini toc */
+        .toc { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+        .toc a{
+            font-size:12px;
+            text-decoration:none;
+            color:#234;
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:999px;
+            padding:6px 10px;
         }
+        .toc a:hover{ background:#f7fbff; }
 
-        /* ============================================================
-           2.12.D — Full lists Req/TC
-           ============================================================ */
-        .list-table { width: 100%; border-collapse: collapse; }
+        h3 { margin: 0 0 10px 0; }
+        .section-title { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+        .section-title .muted { margin:0; }
+
+        /* Full lists */
+        .list-table { width: 100%; border-collapse: collapse; min-width: 520px; }
         .list-table th, .list-table td {
-            border-bottom: 1px solid #edf2f7;
+            border-bottom: 1px solid var(--border-soft);
             padding: 8px 10px;
             font-size: 13px;
             text-align: left;
         }
-        .list-table th { background: #f0f4fb; font-weight: bold; }
-        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-        details > summary { cursor: pointer; user-select: none; font-weight: 700; }
+        .list-table th { background: var(--head); font-weight: bold; }
+
+        details > summary { cursor: pointer; user-select: none; font-weight: 800; }
         details summary .muted { font-weight: 400; }
+
+        @media (max-width: 900px) {
+            body { padding: 14px; }
+            table { min-width: 560px; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            header { font-size: 20px; }
+        }
     </style>
 </head>
 
 <body>
 
 <header>
-    {{ header }}
-    {% if badge %}
-      <span class="badge">{{ badge }}</span>
-    {% endif %}
+    <div class="header-left">
+        <span>{{ header }}</span>
+        {% if badge %}
+          <span class="badge">{{ badge }}</span>
+        {% endif %}
+    </div>
+    <span class="muted">APP2 · TCTC report</span>
 </header>
 
 <div class="content">
@@ -226,8 +262,11 @@ Description :
     {% set requirements_list = (requirements_list if requirements_list is defined else []) %}
     {% set tests_list = (tests_list if tests_list is defined else []) %}
 
-    <!-- APP1-style summary -->
-    <div class="card summary">
+    {# coverage class for progress bar #}
+    {% set cov_class = ("bad" if cov < 50 else ("warn" if cov < 80 else "")) %}
+
+    <!-- Summary -->
+    <div class="card summary" id="summary">
         <div class="summary-top">
             <div>
                 <p class="summary-title">Synthèse</p>
@@ -235,23 +274,39 @@ Description :
                     Matrice de traçabilité + KPI couverture.
                     IA (si activée) = <strong>suggestion-only</strong>, aucun lien n’est appliqué automatiquement.
                 </p>
+
+                <div class="progress" title="Coverage">
+                    <span class="{{ cov_class }}" style="width: {{ "%.1f"|format(cov) }}%"></span>
+                </div>
+                <p class="muted" style="margin:6px 0 0 0;">
+                    Coverage: <strong>{{ "%.1f"|format(cov) }}%</strong> · Links: {{ total_links }}
+                </p>
+
+                <div class="toc">
+                    <a href="#kpi">KPI</a>
+                    <a href="#lists">Datasets</a>
+                    <a href="#uncovered">Uncovered</a>
+                    <a href="#orphans">Orphans</a>
+                    <a href="#matrix">Matrix</a>
+                    <a href="#ai">AI</a>
+                </div>
             </div>
 
             <div class="chips">
                 {% if (unc_list | length) == 0 %}
-                    <span class="chip"><span class="dot dot-ok"></span>Uncovered req: 0</span>
+                    <span class="chip"><span class="dot dot-ok"></span>Uncovered: 0</span>
                 {% else %}
-                    <span class="chip"><span class="dot dot-bad"></span>Uncovered req: {{ unc_list | length }}</span>
+                    <span class="chip"><span class="dot dot-bad"></span>Uncovered: {{ unc_list | length }}</span>
                 {% endif %}
 
                 {% if (orp_list | length) == 0 %}
-                    <span class="chip"><span class="dot dot-ok"></span>Orphan tests: 0</span>
+                    <span class="chip"><span class="dot dot-ok"></span>Orphans: 0</span>
                 {% else %}
-                    <span class="chip"><span class="dot dot-warn"></span>Orphan tests: {{ orp_list | length }}</span>
+                    <span class="chip"><span class="dot dot-warn"></span>Orphans: {{ orp_list | length }}</span>
                 {% endif %}
 
                 {% if ai_enabled %}
-                    <span class="chip"><span class="dot dot-ai"></span>AI: enabled · suggestions: {{ ai_count }}</span>
+                    <span class="chip"><span class="dot dot-ai"></span>AI: enabled · {{ ai_count }}</span>
                 {% else %}
                     <span class="chip"><span class="dot dot-ok"></span>AI: disabled</span>
                 {% endif %}
@@ -274,42 +329,57 @@ Description :
             <div class="kpi-card">
                 <div class="kpi-label">Coverage</div>
                 <div class="kpi-value">{{ "%.1f"|format(cov) }}%</div>
-                <div class="kpi-hint">Links: {{ total_links }} · Uncovered: {{ unc_list | length }} · Orphans: {{ orp_list | length }}</div>
+                <div class="kpi-hint">Uncovered: {{ unc_list | length }} · Orphans: {{ orp_list | length }}</div>
             </div>
         </div>
     </div>
 
-    <div class="card">
-        <h3>KPI couverture</h3>
-        <table>
-            <tr><th>Métrique</th><th>Valeur</th></tr>
-            <tr><td>Coverage (%)</td><td><strong>{{ kpi.coverage_percent }}</strong></td></tr>
-            <tr><td>Total requirements</td><td>{{ kpi.total_requirements }}</td></tr>
-            <tr><td>Covered requirements</td><td>{{ kpi.covered_requirements | length }}</td></tr>
-            <tr><td>Uncovered requirements</td><td>{{ kpi.uncovered_requirements | length }}</td></tr>
-            <tr><td>Orphan tests</td><td>{{ kpi.orphan_tests | length }}</td></tr>
-            <tr><td>Total links</td><td>{{ kpi.total_links }}</td></tr>
-            <tr><td>Avg tests/requirement</td><td>{{ kpi.avg_tests_per_requirement }}</td></tr>
-        </table>
+    <div class="card" id="kpi">
+        <div class="section-title">
+            <h3>KPI couverture</h3>
+            <p class="muted">Export CSV : <span class="mono">kpi_summary.csv</span></p>
+        </div>
+        <div class="table-wrap" style="margin-top:10px;">
+            <table>
+                <tr><th>Métrique</th><th class="num">Valeur</th><th>Note</th></tr>
+                <tr>
+                    <td>Coverage (%)</td>
+                    <td class="num"><strong>{{ "%.1f"|format(cov) }}</strong>%</td>
+                    <td>
+                        {% if cov >= 80 %}<span class="pill-ok">OK</span>
+                        {% elif cov >= 50 %}<span class="pill-warn">WARN</span>
+                        {% else %}<span class="pill-ko">LOW</span>{% endif %}
+                    </td>
+                </tr>
+                <tr><td>Total requirements</td><td class="num">{{ kpi.total_requirements }}</td><td class="muted">Dataset size</td></tr>
+                <tr><td>Covered requirements</td><td class="num">{{ kpi.covered_requirements | length }}</td><td class="muted">Covered by ≥1 test</td></tr>
+                <tr><td>Uncovered requirements</td><td class="num">{{ kpi.uncovered_requirements | length }}</td><td class="muted">No linked tests</td></tr>
+                <tr><td>Orphan tests</td><td class="num">{{ kpi.orphan_tests | length }}</td><td class="muted">No linked requirements</td></tr>
+                <tr><td>Total links</td><td class="num">{{ kpi.total_links }}</td><td class="muted">Req↔TC links</td></tr>
+                <tr><td>Avg tests/requirement</td><td class="num">{{ kpi.avg_tests_per_requirement }}</td><td class="muted">Mean linked tests</td></tr>
+            </table>
+        </div>
     </div>
 
     <!-- 2.12.D: Full lists -->
-    <div class="card">
+    <div class="card" id="lists">
         <details open>
             <summary>Liste complète des exigences <span class="muted">({{ requirements_list | length }})</span></summary>
             {% if requirements_list %}
-                <table class="list-table" style="margin-top:10px;">
-                    <tr>
-                        <th style="width:160px;">Requirement ID</th>
-                        <th>Title</th>
-                    </tr>
-                    {% for r in requirements_list %}
-                    <tr>
-                        <td class="mono">{{ r.id }}</td>
-                        <td>{{ r.title }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
+                <div class="table-wrap" style="margin-top:10px;">
+                    <table class="list-table">
+                        <tr>
+                            <th style="width:180px;">Requirement ID</th>
+                            <th>Title</th>
+                        </tr>
+                        {% for r in requirements_list %}
+                        <tr>
+                            <td class="mono">{{ r.id }}</td>
+                            <td>{{ r.title }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
             {% else %}
                 <span class="pill-ko">Aucune exigence disponible</span>
             {% endif %}
@@ -320,30 +390,35 @@ Description :
         <details open>
             <summary>Liste complète des tests <span class="muted">({{ tests_list | length }})</span></summary>
             {% if tests_list %}
-                <table class="list-table" style="margin-top:10px;">
-                    <tr>
-                        <th style="width:160px;">Test ID</th>
-                        <th>Title</th>
-                    </tr>
-                    {% for t in tests_list %}
-                    <tr>
-                        <td class="mono">{{ t.id }}</td>
-                        <td>{{ t.title }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
+                <div class="table-wrap" style="margin-top:10px;">
+                    <table class="list-table">
+                        <tr>
+                            <th style="width:180px;">Test ID</th>
+                            <th>Title</th>
+                        </tr>
+                        {% for t in tests_list %}
+                        <tr>
+                            <td class="mono">{{ t.id }}</td>
+                            <td>{{ t.title }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
             {% else %}
                 <span class="pill-ko">Aucun test disponible</span>
             {% endif %}
         </details>
     </div>
 
-    <div class="card">
-        <h3>Exigences non couvertes</h3>
+    <div class="card" id="uncovered">
+        <div class="section-title">
+            <h3>Exigences non couvertes</h3>
+            <p class="muted">Count: {{ unc_list | length }}</p>
+        </div>
         {% if uncovered %}
             <ul>
             {% for r in uncovered %}
-                <li>{{ r }}</li>
+                <li class="mono">{{ r }}</li>
             {% endfor %}
             </ul>
         {% else %}
@@ -351,12 +426,15 @@ Description :
         {% endif %}
     </div>
 
-    <div class="card">
-        <h3>Tests orphelins</h3>
+    <div class="card" id="orphans">
+        <div class="section-title">
+            <h3>Tests orphelins</h3>
+            <p class="muted">Count: {{ orp_list | length }}</p>
+        </div>
         {% if orphans %}
             <ul>
             {% for t in orphans %}
-                <li>{{ t }}</li>
+                <li class="mono">{{ t }}</li>
             {% endfor %}
             </ul>
         {% else %}
@@ -364,59 +442,71 @@ Description :
         {% endif %}
     </div>
 
-    <div class="card">
-        <h3>Matrice Req ↔ Tests (preview)</h3>
-        <table>
-            <tr>
-                <th>Requirement</th>
-                <th>Covered</th>
-                <th>Linked tests</th>
-            </tr>
-            {% for row in matrix_rows %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td>
-                    {% if row[1] == "YES" %}
-                        <span class="pill-ok">YES</span>
-                    {% else %}
-                        <span class="pill-ko">NO</span>
-                    {% endif %}
-                </td>
-                <td>{{ row[2] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        <div class="muted" style="margin-top:8px;">
-            Export CSV : traceability_matrix.csv
+    <div class="card" id="matrix">
+        <div class="section-title">
+            <h3>Matrice Req ↔ Tests (preview)</h3>
+            <p class="muted">Export CSV : <span class="mono">traceability_matrix.csv</span></p>
         </div>
-    </div>
-
-    <div class="card">
-        <h3>Suggestions IA (optionnel)</h3>
-        {% if ai_suggestions %}
+        <div class="table-wrap" style="margin-top:10px;">
             <table>
                 <tr>
-                    <th>Requirement</th>
-                    <th>Suggested test</th>
-                    <th>Confidence</th>
-                    <th>Rationale</th>
+                    <th style="width:220px;">Requirement</th>
+                    <th style="width:120px;">Covered</th>
+                    <th>Linked tests</th>
                 </tr>
-                {% for s in ai_suggestions %}
+                {% for row in matrix_rows %}
                 <tr>
-                    <td>{{ s.requirement_id }}</td>
-                    <td>{{ s.test_id }}</td>
-                    <td>{{ s.confidence if s.confidence is not none else "" }}</td>
-                    <td>{{ s.rationale }}</td>
+                    <td class="mono">{{ row[0] }}</td>
+                    <td>
+                        {% if row[1] == "YES" %}
+                            <span class="pill-ok">YES</span>
+                        {% else %}
+                            <span class="pill-ko">NO</span>
+                        {% endif %}
+                    </td>
+                    <td class="mono">{{ row[2] }}</td>
                 </tr>
                 {% endfor %}
             </table>
-            <div class="muted" style="margin-top:8px;">
-                Export CSV : ai_suggestions.csv
+        </div>
+    </div>
+
+    <div class="card" id="ai">
+        <div class="section-title">
+            <h3>Suggestions IA (optionnel)</h3>
+            <p class="muted">Export CSV : <span class="mono">ai_suggestions.csv</span></p>
+        </div>
+
+        {% if ai_suggestions %}
+            <div class="table-wrap" style="margin-top:10px;">
+                <table>
+                    <tr>
+                        <th style="width:220px;">Requirement</th>
+                        <th style="width:220px;">Suggested test</th>
+                        <th style="width:120px;">Confidence</th>
+                        <th>Rationale</th>
+                    </tr>
+                    {% for s in ai_suggestions %}
+                    <tr>
+                        <td class="mono">{{ s.requirement_id }}</td>
+                        <td class="mono">{{ s.test_id }}</td>
+                        <td class="num">{{ s.confidence if s.confidence is not none else "" }}</td>
+                        <td>{{ s.rationale }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
             </div>
+            <p class="muted" style="margin-top:8px;">
+                Note: suggestion-only, aucun lien n’est appliqué automatiquement.
+            </p>
         {% else %}
             <span class="pill-ok">IA désactivée ou aucune suggestion</span>
         {% endif %}
     </div>
+
+    <p class="muted" style="margin:18px 0 8px 0;">
+        Generated by APP2 TCTC · Standalone HTML (no external dependencies)
+    </p>
 
 </div>
 

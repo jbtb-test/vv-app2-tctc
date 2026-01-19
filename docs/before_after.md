@@ -1,6 +1,6 @@
 # Avant / Après — Traçabilité & Couverture de tests
 
-Ce document compare une **gestion manuelle de la traçabilité**
+Ce document compare une **gestion manuelle de la traçabilité et de la couverture**
 avec une **traçabilité outillée via APP2 TCTC**.
 
 L’objectif est d’illustrer :
@@ -68,7 +68,7 @@ L’objectif est d’illustrer :
 ### Limites maîtrisées
 
 - Ne remplace pas la stratégie de test
-- Ne crée pas de lien sans validation humaine
+- Ne remplace pas l’analyse métier
 - Ne décide jamais de la couverture acceptable
 
 ---

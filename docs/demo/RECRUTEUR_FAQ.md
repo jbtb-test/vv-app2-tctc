@@ -69,7 +69,7 @@ Fallback strict :
 
 - Détection immédiate des trous de couverture
 - Support aux revues et audits
-- KPI objectifs pour pilotage test
+- KPI objectifs pour le pilotage test
 - Traçabilité exploitable hors outil (Excel, Jira, etc.)
 
 ---

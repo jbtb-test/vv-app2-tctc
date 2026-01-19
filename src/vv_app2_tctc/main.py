@@ -4,38 +4,40 @@
 ============================================================
 vv_app2_tctc.main
 ------------------------------------------------------------
-Description :
-    APP2 — TCTC (Traceability & Test Coverage Tool)
-    Étape 2.7 — CLI main
+APP2 — TCTC (Traceability & Test Coverage Tool)
 
-Rôle :
-    - Fournir une CLI robuste (MVP) :
-        * lecture CSV exigences + CSV cas de test
-        * validation minimale des entrées (présence + headers)
-        * orchestration (préparation des données)
-        * génération d’outputs démontrables (CSV + HTML "snapshot")
-    - Aucune dépendance aux modules futurs (models/validators/traceability/kpi/ia/report),
-      ceux-ci arriveront aux étapes 2.8+.
+Purpose:
+    CLI entry point that:
+      - Loads requirements and test cases from CSV datasets
+      - Validates dataset structure and consistency
+      - Builds a traceability matrix (requirements ↔ test cases)
+      - Computes coverage KPIs (coverage %, uncovered requirements, orphan tests)
+      - Generates a report bundle (HTML + CSV artifacts)
 
-Architecture (repo) :
-    - Code : src/vv_app2_tctc/
-    - Tests : tests/
-    - Données : data/
-    - Docs : docs/
-    - Templates : templates/
+AI assistance (optional, suggestion-only):
+    - Enabled only if is_ai_enabled() returns True (env + key)
+    - Produces suggestions (no automatic modification of datasets/traceability)
+    - Never blocks execution: failures are caught and fallback to []
 
-Usage CLI :
-    python -m vv_app2_tctc.main
-    python -m vv_app2_tctc.main --requirements data/inputs/requirements.csv --tests data/inputs/tests.csv
-    python -m vv_app2_tctc.main --out-dir data/outputs --verbose
-    python -m vv_app2_tctc.main --fail-on-empty
+Inputs (CSV):
+    - Requirements: requirement_id, title, description, criticality (tolerant aliases)
+    - Tests: test_id, title, description, linked_requirements (tolerant aliases)
 
-Notes :
-    - L’IA est volontairement ABSENTE en 2.7 (ENABLE_AI ignoré ici).
-    - Les KPI et la matrice complète arrivent en 2.9 / 2.10.
-    - Le HTML généré ici est un rendu standalone minimal (ouvrable localement).
+Outputs (out-dir):
+    - HTML report
+    - Traceability CSV
+    - KPI CSV
+    - AI suggestions CSV (optional)
+
+Exit / failure policy:
+    - Missing input files or decoding issues raise ModuleError
+    - If --fail-on-empty is enabled:
+        * empty datasets raise an error
+        * validation errors raise an error (raise_if_invalid)
+    - Otherwise: warnings are logged and outputs may be empty but generated.
 ============================================================
 """
+
 
 from __future__ import annotations
 
@@ -44,8 +46,9 @@ from vv_app2_tctc.validators import validate_datasets, raise_if_invalid
 
 from vv_app2_tctc.traceability import build_matrix_from_testcases
 from vv_app2_tctc.kpi import compute_coverage_kpis
-from vv_app2_tctc.ia_assistant import suggest_missing_links
+from vv_app2_tctc.ia_assistant import is_ai_enabled, suggest_missing_links
 from vv_app2_tctc.report import generate_report_bundle
+
 # ============================================================
 # 📦 Imports
 # ============================================================
@@ -350,18 +353,48 @@ def write_snapshot_html(out_path: Path, requirements: List[Dict[str, str]], test
 """
     out_path.write_text(html, encoding="utf-8")
 
+def _write_fallback_snapshot(
+    out_dir: Path,
+    requirements: List[Dict[str, str]],
+    tests: List[Dict[str, str]],
+    reason: str,
+) -> Dict[str, str]:
+    """
+    Always-best-effort fallback outputs.
+    Generates a minimal HTML+CSV snapshot so the run leaves artifacts even if
+    matrix/KPI/report steps fail.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "fallback_snapshot.csv"
+    html_path = out_dir / "fallback_snapshot.html"
+
+    try:
+        write_snapshot_csv(csv_path, requirements, tests)
+        write_snapshot_html(html_path, requirements, tests)
+        log.warning("Fallback snapshot generated (%s)", reason)
+        return {"fallback_csv": str(csv_path), "fallback_html": str(html_path)}
+    except Exception as e:
+        # Never block on fallback itself
+        log.exception("Fallback snapshot generation failed (%s): %s", reason, e)
+        return {}
+
 
 # ============================================================
 # 🔧 Fonction principale
 # ============================================================
 def process(data: Dict[str, Any]) -> ProcessResult:
     """
-    - Charge requirements.csv + tests.csv
-    - Applique validations minimales (présence, non-vide si fail_on_empty)
-    - Valide la cohérence datasets (2.8.1)
-    - Construit matrice (2.9) + KPI (2.10)
-    - (Optionnel) Génère suggestions IA (2.11)
-    - Génère rapport HTML + CSV (2.12)
+    Orchestrates APP2 TCTC pipeline:
+      - Load requirements.csv + tests.csv
+      - Validate dataset structure and consistency (2.8.1)
+      - Build traceability matrix (2.9) + compute KPIs (2.10)
+      - (Optional) Generate AI suggestions (2.11) — never blocking
+      - Generate report bundle (HTML + CSV) (2.12)
+
+    Orchestration guarantees (5.1 hardening):
+      - Output directory is created early
+      - On fatal paths after loading datasets, a fallback snapshot (HTML+CSV) is generated best-effort
+      - Validation errors are fatal only when --fail-on-empty is enabled
     """
     try:
         if not isinstance(data, dict):
@@ -383,12 +416,17 @@ def process(data: Dict[str, Any]) -> ProcessResult:
 
         enable_ai_env = str(os.getenv("ENABLE_AI", "0")).strip().lower()
         has_key = bool((os.getenv("OPENAI_API_KEY") or "").strip())
+        ai_effective = is_ai_enabled()
         log.info(
             "AI      : %s (ENABLE_AI=%s, key=%s)",
-            "enabled" if enable_ai_env in {"1", "true", "yes", "on"} else "disabled",
+            "enabled" if ai_effective else "disabled",
             enable_ai_env,
             "yes" if has_key else "no",
         )
+
+        # Always create output dir early to guarantee artifacts on failure paths
+        out_dir.mkdir(parents=True, exist_ok=True)
+        fallback_artifacts: Dict[str, str] = {}
 
         # ============================================================
         # 📥 Load datasets (dicts)
@@ -396,8 +434,12 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         requirements = load_requirements(req_path)
         tests = load_tests(tests_path)
 
-        if fail_on_empty and (not requirements or not tests):
-            raise ModuleError("Empty dataset (requirements or tests is empty).")
+        if (not requirements or not tests):
+            msg = f"Empty dataset: requirements={len(requirements)} tests={len(tests)}"
+            if fail_on_empty:
+                fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason=msg)
+                raise ModuleError(msg)
+            log.warning("%s (continuing, --fail-on-empty is OFF)", msg)
 
         # ============================================================
         # ✅ Validation datasets (2.8.1) + mapping models
@@ -425,50 +467,71 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             len(validation_report.warnings),
         )
 
-        if validation_report.errors:
-            for e in validation_report.errors:
-                log.error("VAL_ERROR %s: %s | %s", e.code, e.message, e.context)
+        for e in validation_report.errors:
+            log.error("VAL_ERROR %s: %s | %s", e.code, e.message, e.context)
 
-        if validation_report.warnings:
-            for w in validation_report.warnings:
-                log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
+        for w in validation_report.warnings:
+            log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
 
-        # Mode bloquant : on bloque sur erreurs si --fail-on-empty est activé
-        if fail_on_empty:
+        # Policy:
+        # - warnings never block
+        # - validation errors block only if --fail-on-empty is enabled
+        if validation_report.errors and fail_on_empty:
+            fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason="validation_errors")
             raise_if_invalid(validation_report)
 
-        # ============================================================
-        # 🔗 Matrice + KPI (2.9 / 2.10)
-        # ============================================================
-        matrix = build_matrix_from_testcases(requirements_m, tests_m)
-        kpi = compute_coverage_kpis(matrix)
+        if validation_report.errors and not fail_on_empty:
+            log.warning("Validation errors detected but continuing (non-blocking mode). Outputs may be incomplete.")
 
         # ============================================================
-        # 🤖 Suggestions IA (optionnel) (2.11)
+        # 🔗 Matrice + KPI (2.9 / 2.10) — guarded
         # ============================================================
-        ai_suggestions = suggest_missing_links(
-            requirements=requirements_m,
-            testcases=tests_m,
-            matrix=matrix,
-            verbose=verbose,
-        )
+        try:
+            matrix = build_matrix_from_testcases(requirements_m, tests_m)
+            kpi = compute_coverage_kpis(matrix)
+        except Exception as e:
+            fallback_artifacts = _write_fallback_snapshot(
+                out_dir, requirements, tests, reason=f"matrix/kpi_failed: {e}"
+            )
+            raise ModuleError(f"Matrix/KPI step failed: {e}") from e
 
         # ============================================================
-        # 📄 Report bundle (HTML + CSV) (2.12)
+        # 🤖 Suggestions IA (optionnel) (2.11) — never blocking
         # ============================================================
-        out_dir.mkdir(parents=True, exist_ok=True)
+        ai_suggestions: List[Dict[str, Any]] = []
+        if is_ai_enabled():
+            try:
+                ai_suggestions = (
+                    suggest_missing_links(
+                        requirements=requirements_m,
+                        testcases=tests_m,
+                        matrix=matrix,
+                        verbose=verbose,
+                    )
+                    or []
+                )
+            except Exception as e:
+                log.warning("AI suggestion step failed -> fallback [] (%s)", e)
+                ai_suggestions = []
 
-        bundle = generate_report_bundle(
-            requirements=requirements_m,
-            testcases=tests_m,
-            matrix=matrix,
-            kpi=kpi,
-            ai_suggestions=ai_suggestions,
-            out_dir=out_dir,
-            templates_dir="templates/tctc",
-            template_name="tctc_report.html",
-            title="APP2 TCTC — Traceability Report",
-        )
+        # ============================================================
+        # 📄 Report bundle (HTML + CSV) (2.12) — guarded
+        # ============================================================
+        try:
+            bundle = generate_report_bundle(
+                requirements=requirements_m,
+                testcases=tests_m,
+                matrix=matrix,
+                kpi=kpi,
+                ai_suggestions=ai_suggestions,
+                out_dir=out_dir,
+                templates_dir="templates/tctc",
+                template_name="tctc_report.html",
+                title="APP2 TCTC — Traceability Report",
+            )
+        except Exception as e:
+            fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason=f"report_failed: {e}")
+            raise ModuleError(f"Report bundle generation failed: {e}") from e
 
         payload = {
             "requirements_count": len(requirements),
@@ -491,6 +554,9 @@ def process(data: Dict[str, Any]) -> ProcessResult:
 
             # Validation report
             "validation": validation_report.to_dict(),
+
+            # Fallback artifacts (if any)
+            "fallback": fallback_artifacts or None,
         }
 
         return ProcessResult(ok=True, payload=payload, message="OK")
@@ -502,6 +568,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         raise ModuleError(str(e)) from e
 
 
+
 # ============================================================
 # ▶️ Main (CLI)
 # ============================================================
@@ -509,31 +576,42 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="vv-app2-tctc",
         description=(
-            "APP2 TCTC — CLI: read requirements/tests CSV, validate minimal schema, "
-            "and generate snapshot outputs (CSV + HTML). "
-            "Traceability matrix and KPI are implemented in later steps."
+            "APP2 TCTC — Traceability & Test Coverage Tool.\n\n"
+            "Reads requirements/tests CSV datasets, validates consistency, builds a traceability matrix,\n"
+            "computes coverage KPIs, and generates a report bundle (HTML + CSV artifacts).\n\n"
+            "AI assistance is optional, suggestion-only, and never blocks execution."
         ),
+        epilog=(
+            "Notes:\n"
+            "- Outputs are generated in --out-dir (HTML + CSV).\n"
+            "- AI is enabled only when is_ai_enabled() is True; failures fallback to [].\n"
+            "- --fail-on-empty enforces stricter behavior (empty datasets and validation errors become fatal)."
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     p.add_argument(
         "--requirements",
         default="data/inputs/requirements.csv",
-        help="Path to requirements CSV (default: data/inputs/requirements.csv)",
+        help="Path to requirements CSV (default: data/inputs/requirements.csv).",
     )
     p.add_argument(
         "--tests",
         default="data/inputs/tests.csv",
-        help="Path to tests CSV (default: data/inputs/tests.csv)",
+        help="Path to tests CSV (default: data/inputs/tests.csv).",
     )
     p.add_argument(
         "--out-dir",
         default=os.getenv("OUTPUT_DIR", "data/outputs"),
-        help="Output directory (default: OUTPUT_DIR or data/outputs)",
+        help="Output directory (default: OUTPUT_DIR or data/outputs).",
     )
     p.add_argument(
         "--fail-on-empty",
         action="store_true",
-        help="Fail (non-zero) if requirements or tests dataset is empty.",
+        help=(
+            "Fail (non-zero) if datasets are empty.\n"
+            "When enabled, validation errors are also fatal."
+        ),
     )
     p.add_argument(
         "--verbose",
@@ -542,6 +620,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     return p
+
 
 
 def main() -> None:
