@@ -1,7 +1,8 @@
-# Templates de référence
+# TEMPLATES_REF (Reference only)
 
-Ces fichiers sont des **modèles pédagogiques** (HTML, Python, tests) utilisés comme **références de structure et de qualité**.
+Ce dossier contient des templates **de référence** (style, structure, conventions).
+Ils ne sont **jamais utilisés** par l’application au runtime.
 
-Ils ne sont **jamais utilisés** par l’application.
-
-Le moteur Jinja ne charge que les templates depuis : templates/tctc/
+- Ne pas importer ce dossier dans le code
+- Ne pas pointer `templates_dir` vers `templates/TEMPLATES_REF`
+- Les fichiers sont préfixés par `_TEMPLATE_` volontairement
