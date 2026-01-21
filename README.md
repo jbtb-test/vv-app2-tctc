@@ -151,4 +151,18 @@ vv-app2-tctc/
 > Les dépendances et environnements sont gérés via `pyproject.toml`.
 > Les fichiers `requirements*.txt` sont fournis à titre informatif et de traçabilité.
 
+---
+
+## ⚖️ Usage & licence
+
+Ce dépôt est fourni à des fins de **démonstration et d’évaluation professionnelle** uniquement.
+
+Il ne constitue pas un produit certifié ni un outil industriel prêt à l’emploi.
+Les résultats produits doivent être analysés et validés par un humain.
+
+Lorsqu’elle est activée, l’intelligence artificielle intervient **uniquement en tant que moteur de suggestion**.
+Aucune décision automatique n’est prise par l’IA.
+
+© 2026 JBTB. Tous droits réservés.  
+Voir le fichier [LICENSE](LICENSE) pour les conditions complètes d’utilisation.
 
