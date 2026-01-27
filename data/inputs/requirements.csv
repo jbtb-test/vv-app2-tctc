@@ -1,5 +1,21 @@
 requirement_id,title,description,criticality
-REQ-001,Login,User can login,MEDIUM
-REQ-002,Logout,User can logout,LOW
-REQ-003,Password rules,Password must be >= 12 chars,HIGH
-REQ-004,Account lockout,After 5 failed logins the account is locked,HIGH
+REQ-001,Emergency brake stopping distance,Stop within 800 m at 160 km/h on dry track,HIGH
+REQ-002,HMI status display clarity,Display status quickly and clearly,MEDIUM
+REQ-003,Infusion flow accuracy,Deliver 5 mL/h ±5% at 23°C with saline,CRITICAL
+REQ-004,UDS diagnostics response,Provide DTC/timestamp/mode via UDS 0x19 within 2s,LOW
+REQ-005,Nav accuracy qualitative,High accuracy during normal operation,HIGH
+REQ-006,Nav accuracy quantified,<=10 m error (95th percentile) nominal flight,HIGH
+REQ-007,Prevent unauthorized admin access,Block unauthorized access to admin functions,CRITICAL
+REQ-008,RBAC enforced and logged,Only ADMIN can access admin APIs and log denied attempts,CRITICAL
+REQ-009,Comms latency nominal,<=200 ms for 99% messages in nominal conditions,MEDIUM
+REQ-010,Comms latency all conditions,<=200 ms in all conditions,MEDIUM
+REQ-011,Occlusion alarm presence,Raise audible alarm when occlusion detected,HIGH
+REQ-012,Occlusion alarm quantified,Alarm within 2s and >=60 dBA at 1m,HIGH
+REQ-013,DTC capacity,Store at least 50 DTCs,MEDIUM
+REQ-014,DTC reliability,Store DTCs reliably (no loss),MEDIUM
+REQ-015,Modem throughput,Support throughput up to 20 Mbps,HIGH
+REQ-016,Modem throughput low jitter,20 Mbps with low jitter,HIGH
+REQ-017,Field update support,Software updatable in field,HIGH
+REQ-018,OTA update rollback,Rollback within 5 minutes without config loss,HIGH
+REQ-019,System is safe,Generic safety requirement,HIGH
+REQ-020,EN50128 evidence package,Provide compliance evidence package,MEDIUM

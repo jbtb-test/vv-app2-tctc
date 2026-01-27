@@ -53,6 +53,7 @@ build/
 # --------------------
 data/outputs/
 data/outputs/*
+data/inputs/*_old.csv
 
 # --------------------
 # Dependency lock (local snapshot)
