@@ -8,14 +8,14 @@ Description :
     Modèles de domaine pour APP2 — TCTC (Traceability & Test Coverage Tool).
 
 Rôle :
-    - Définir les structures de données stables utilisées par :
-        * validators.py : validation de cohérence datasets / liens
-        * traceability.py : construction matrice Requirement ↔ TestCase
+    - Structures de données stables utilisées par :
+        * validators.py : validation cohérence datasets / liens
+        * traceability.py : matrice Requirement ↔ TestCase
         * kpi.py : calcul KPI de couverture
-        * ia_assistant.py : suggestions de liens (source=AI)
+        * ia_assistant.py : suggestions de liens (AI)
         * report.py : rendu HTML/CSV
 
-    - Fournir une sérialisation simple (to_dict / from_dict) pour :
+    - Sérialisation simple (to_dict / from_dict) pour :
         * outputs
         * logs
         * tests
@@ -33,7 +33,7 @@ from __future__ import annotations
 # ============================================================
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar
 
 # ============================================================
 # 🔎 Public exports
@@ -46,6 +46,7 @@ __all__ = [
     "TraceLink",
     "CoverageKpi",
     "build_links_from_testcases",
+    "parse_requirement_ids",
 ]
 
 
@@ -65,7 +66,7 @@ class LinkSource(str, Enum):
     Origine d’un lien de traçabilité.
     - DATASET : lien explicitement présent dans tests.csv
     - AI : suggestion non décisionnelle
-    - HUMAN : validation / ajout manuel (hors scope code, mais utile pour audit)
+    - HUMAN : validation / ajout manuel (audit)
     """
     DATASET = "DATASET"
     AI = "AI"
@@ -80,7 +81,10 @@ def _s(v: Any) -> str:
     return ("" if v is None else str(v)).strip()
 
 
-def _enum_from_str(enum_cls: type[Enum], raw: Any, field_name: str) -> Enum:
+TEnum = TypeVar("TEnum", bound=Enum)
+
+
+def _enum_from_str(enum_cls: type[TEnum], raw: Any, field_name: str) -> TEnum:
     """
     Convertit un champ texte en Enum (strict).
 
@@ -98,7 +102,7 @@ def _enum_from_str(enum_cls: type[Enum], raw: Any, field_name: str) -> Enum:
 
     # match valeur
     try:
-        return enum_cls(s)  # type: ignore[misc]
+        return enum_cls(s)  # type: ignore[arg-type]
     except Exception:
         pass
 
@@ -126,16 +130,14 @@ def parse_requirement_ids(raw: Any) -> List[str]:
     if not s:
         return []
 
-    # Normalisation multi-séparateurs → ','
     for sep in ["|", ";"]:
         s = s.replace(sep, ",")
     parts = [_s(p) for p in s.split(",")]
+
     out: List[str] = []
     seen: Set[str] = set()
     for p in parts:
-        if not p:
-            continue
-        if p in seen:
+        if not p or p in seen:
             continue
         out.append(p)
         seen.add(p)
@@ -197,7 +199,7 @@ class Requirement:
             requirement_id=d.get("requirement_id", "") or d.get("req_id", "") or d.get("id", ""),
             title=d.get("title", ""),
             description=d.get("description", "") or d.get("text", ""),
-            criticality=crit,  # type: ignore[arg-type]
+            criticality=crit,
             source=d.get("source", "demo"),
             system=d.get("system", ""),
             component=d.get("component", ""),
@@ -209,7 +211,6 @@ class Requirement:
 @dataclass(frozen=True)
 class TestCase:
     """Cas de test d'entrée, avec liens bruts vers exigences."""
-
     __test__ = False  # empêche pytest de collecter cette classe métier
 
     test_id: str
@@ -232,7 +233,6 @@ class TestCase:
         if not (self.title or self.description):
             raise ValueError("TestCase must have at least a title or a description.")
 
-        # linked_requirements : si vide, on parse depuis raw
         parsed = self.linked_requirements or parse_requirement_ids(self.linked_requirements_raw)
         object.__setattr__(self, "linked_requirements", parsed)
 
@@ -253,7 +253,6 @@ class TestCase:
 
         raw = d.get("linked_requirements_raw", "")
         if not raw:
-            # compat dataset v2.6 / main.py
             raw = d.get("linked_requirements", "") if isinstance(d.get("linked_requirements"), str) else ""
 
         links = d.get("linked_requirements", [])
@@ -270,7 +269,6 @@ class TestCase:
             linked_requirements=links_list,
             meta=dict(d.get("meta", {}) or {}),
         )
-
 
 
 @dataclass(frozen=True)
@@ -321,7 +319,7 @@ class TraceLink:
         return TraceLink(
             requirement_id=d.get("requirement_id", "") or d.get("req_id", ""),
             test_id=d.get("test_id", "") or d.get("tc_id", ""),
-            source=src,  # type: ignore[arg-type]
+            source=src,
             confidence=d.get("confidence", None),
             rationale=d.get("rationale", ""),
         )
@@ -332,10 +330,7 @@ class CoverageKpi:
     """
     KPI de couverture — modèle data-only (calculé dans kpi.py).
 
-    Ces KPI sont conçus pour :
-    - être exportés facilement
-    - être affichés dans un rapport
-    - être testés unitairement
+    Conçus pour export / reporting / tests unitaires.
     """
     requirements_total: int
     requirements_covered: int
@@ -393,7 +388,7 @@ class CoverageKpi:
 # ============================================================
 def build_links_from_testcases(testcases: Iterable[TestCase]) -> List[TraceLink]:
     """
-    Construit les TraceLink "DATASET" depuis les TestCase.linked_requirements.
+    Construit les TraceLink "DATASET" depuis TestCase.linked_requirements.
     (Pas de validation ici : validators.py s'en charge)
     """
     links: List[TraceLink] = []

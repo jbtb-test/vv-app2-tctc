@@ -5,8 +5,8 @@
 vv_app2_tctc.ia_assistant
 ------------------------------------------------------------
 Description :
-    Module IA (OpenAI) encapsulé pour suggestions de liens
-    manquants (APP2 — TCTC) — Étape 2.11
+    Module IA (OpenAI) encapsulé pour suggestions de liens manquants
+    (APP2 — TCTC) — IA "suggestion-only" et non bloquante.
 
 Objectifs :
     - Aucune dépendance IA obligatoire pour faire tourner l’app
@@ -17,10 +17,14 @@ Objectifs :
 Variables d'environnement :
     - ENABLE_AI         : 0/1 (default: 0)
     - OPENAI_API_KEY    : clé API (si absent -> IA désactivée)
-    - OPENAI_MODEL      : modèle (default: gpt-5) [modifiable]
+    - OPENAI_MODEL      : modèle (default: gpt-4.1-mini) [modifiable]
 
 API utilisée :
     - OpenAI Responses API via openai-python (si installé)
+
+Notes :
+    - Sortie attendue STRICTEMENT JSON.
+    - Toute erreur -> log explicite + fallback [] (NEVER RAISE).
 ============================================================
 """
 
@@ -36,6 +40,16 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
 from vv_app2_tctc import models
+
+# ============================================================
+# 🔎 Public exports
+# ============================================================
+__all__ = [
+    "ModuleError",
+    "LinkSuggestion",
+    "is_ai_enabled",
+    "suggest_missing_links",
+]
 
 # ============================================================
 # 🧾 Logging (local, autonome)
@@ -59,7 +73,6 @@ def get_logger(name: str) -> logging.Logger:
 
 log = get_logger(__name__)
 
-
 # ============================================================
 # ⚠️ Exceptions
 # ============================================================
@@ -74,6 +87,12 @@ class ModuleError(Exception):
 class LinkSuggestion:
     """
     Suggestion de lien : relier requirement_id -> test_id.
+
+    Attributes:
+        requirement_id: ID exigence (ex: REQ-001)
+        test_id: ID test (ex: TC-010)
+        rationale: justification courte
+        confidence: confiance [0..1] optionnelle
     """
     requirement_id: str
     test_id: str
@@ -84,7 +103,7 @@ class LinkSuggestion:
 # ============================================================
 # 🔧 Config / Helpers (aligné APP1)
 # ============================================================
-def _truthy(value: str) -> bool:
+def _truthy(value: str | None) -> bool:
     v = (value or "").strip().lower()
     return v in {"1", "true", "yes", "y", "on"}
 
@@ -129,7 +148,6 @@ def _build_prompt(
     Prompt orienté traçabilité : proposer des couples (REQ -> TC).
     Réponse attendue STRICTEMENT en JSON.
     """
-    # On envoie un set de candidats limité (IDs + titres) pour guider l’IA
     tests_lines = "\n".join(
         f"- {tc.test_id}: {tc.title} | {tc.description}"
         for tc in candidate_tests
@@ -192,7 +210,7 @@ def _extract_candidate_tests(
             if orphans:
                 return orphans[:max_candidates]
         except Exception:
-            # on ne casse pas l'app, fallback déterministe
+            # Ne pas casser l'app, fallback déterministe
             pass
 
     return tcs_sorted[:max_candidates]
@@ -215,7 +233,7 @@ def suggest_missing_links(
     """
     Propose des liens manquants pour les exigences non couvertes.
 
-    Contrat (5.2 hardening):
+    Contrat (hardening):
     - is_ai_enabled() est l'unique source de vérité pour activer l'IA
     - NEVER RAISE : toute erreur => log explicite + fallback []
     - Suggestion-only : ne modifie jamais datasets/matrice
@@ -290,7 +308,7 @@ def suggest_missing_links(
         for req_id in uncovered_ids:
             req = req_by_id.get(req_id)
             if req is None:
-                log.debug("Uncovered requirement id not found in requirements dataset: %s", req_id)
+                log.debug("Uncovered requirement id not found in dataset: %s", req_id)
                 continue
 
             prompt = _build_prompt(req=req, candidate_tests=candidates, max_suggestions=max_suggestions_per_req)
@@ -341,10 +359,8 @@ def suggest_missing_links(
         return suggestions
 
     except Exception as e:
-        # Ultimate safety net: never block caller
         log.exception("AI assistant unexpected failure -> fallback [] (%s)", e)
         return []
-
 
 
 # ============================================================

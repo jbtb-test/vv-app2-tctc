@@ -16,18 +16,24 @@ Rôle :
     - Fournir une exception dédiée pour rejeter proprement les datasets invalides
 
 Notes :
-    - Les KPI (couverture %) sont calculés dans kpi.py (2.10).
+    - Les KPI (couverture %) sont calculés dans kpi.py.
     - Ici, on se limite à la cohérence des données et à des indicateurs de base.
 ============================================================
 """
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple
 
 from vv_app2_tctc.models import Requirement, TestCase, TraceLink, build_links_from_testcases
 
+# ============================================================
+# 🔎 Public exports
+# ============================================================
 __all__ = [
     "DatasetValidationError",
     "ValidationIssue",
@@ -51,7 +57,7 @@ class ValidationIssue:
     message: str
     context: Dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, object]:
+    def to_dict(self) -> Dict[str, Any]:
         return {"code": self.code, "message": self.message, "context": dict(self.context)}
 
 
@@ -79,7 +85,7 @@ class ValidationReport:
     duplicate_requirement_ids: List[str] = field(default_factory=list)
     duplicate_test_ids: List[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, object]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "ok": self.ok,
             "errors": [e.to_dict() for e in self.errors],
@@ -98,7 +104,7 @@ class ValidationReport:
 
 
 # ============================================================
-# 🔧 Internals
+# 🔧 Internals (helpers privés)
 # ============================================================
 def _find_duplicates(ids: Iterable[str]) -> List[str]:
     seen: Set[str] = set()
@@ -132,7 +138,6 @@ def validate_datasets(
     Erreurs (bloquantes) :
       - doublons d'IDs (REQ/TC)
       - lien vers exigence inexistante
-      - ID vide (normalement déjà filtré par models)
 
     Warnings (non bloquants) :
       - exigences non couvertes
@@ -169,7 +174,7 @@ def validate_datasets(
 
     req_index = _index_requirements(requirements)
 
-    # liens issus du dataset (pas de validation ici dans models)
+    # Liens issus du dataset (via TestCase.linked_requirements)
     links: List[TraceLink] = build_links_from_testcases(tests)
     unknown_links: List[Tuple[str, str]] = []
     for link in links:
@@ -177,7 +182,6 @@ def validate_datasets(
             unknown_links.append((link.test_id, link.requirement_id))
 
     if unknown_links:
-        # on agrège l’erreur (audit-friendly)
         preview = "; ".join([f"{tc}->{req}" for tc, req in unknown_links[:10]])
         errors.append(
             ValidationIssue(

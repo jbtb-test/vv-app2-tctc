@@ -40,10 +40,8 @@ from __future__ import annotations
 # ============================================================
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
-# Import "soft" : on ne dépend que de l'interface runtime de TraceabilityMatrix
-# (pas besoin d'importer Requirement/TestCase ici)
 
 # ============================================================
 # 🔎 Public exports
@@ -53,12 +51,17 @@ __all__ = [
     "CoverageKPI",
     "compute_coverage_kpis",
 ]
+
+
 # ============================================================
 # 🧾 Logging (local, autonome)
 # ============================================================
 def get_logger(name: str) -> logging.Logger:
     """
     Crée un logger simple et stable (stdout), sans dépendance externe.
+
+    Note:
+        - N'impose pas une config globale si l'app a déjà configuré logging.
     """
     logger = logging.getLogger(name)
     if not logger.handlers:
@@ -69,6 +72,7 @@ def get_logger(name: str) -> logging.Logger:
         )
         handler.setFormatter(fmt)
         logger.addHandler(handler)
+    if logger.level == logging.NOTSET:
         logger.setLevel(logging.INFO)
     return logger
 
@@ -100,7 +104,11 @@ class CoverageKPI:
         - total_requirements / total_tests
         - total_links : somme des liens req->tests
         - avg_tests_per_requirement : densité moyenne (si total_requirements>0)
+
+    Extra :
+        - req_to_tests_count : dict[req_id, nb_tests_liés]
     """
+
     total_requirements: int
     total_tests: int
 
@@ -113,25 +121,38 @@ class CoverageKPI:
     total_links: int
     avg_tests_per_requirement: float
 
-    # Extra (utile pour report / debug)
     req_to_tests_count: Dict[str, int]
 
 
 # ============================================================
 # 🔧 Helpers
 # ============================================================
-def _safe_sorted(values: Sequence[str]) -> List[str]:
-    """
-    Tri stable des IDs (déterministe).
-    """
+def _safe_sorted(values: Iterable[str]) -> List[str]:
+    """Tri stable des IDs (déterministe) + dédoublonnage."""
     return sorted(set(values))
 
 
 def _round_pct(value: float) -> float:
-    """
-    Arrondi stable pour affichage KPI (2 décimales).
-    """
+    """Arrondi stable pour affichage KPI (2 décimales)."""
     return round(value, 2)
+
+
+def _normalize_test_ids(tests: Any) -> List[str]:
+    """
+    Normalise une collection d'IDs de tests en liste de str non vides.
+    Accepte set/list/tuple. Déterministe via set+sorted en aval.
+    """
+    if tests is None:
+        return []
+    if not isinstance(tests, (set, list, tuple)):
+        raise KPIError("Invalid input: each req_to_tests value must be a set/list/tuple of test IDs.")
+
+    out: List[str] = []
+    for t in tests:
+        s = str(t).strip()
+        if s:
+            out.append(s)
+    return out
 
 
 # ============================================================
@@ -144,9 +165,11 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
     Args:
         matrix: objet TraceabilityMatrix (duck-typing accepté).
             Doit exposer au minimum :
-                - req_to_tests: dict[str, set[str]]
-                - uncovered_requirements(): list[str] (ou équivalent)
-                - orphan_tests(): list[str] (ou équivalent)
+                - req_to_tests: dict[str, set[str] | list[str] | tuple[str]]
+            Optionnel (si présents) :
+                - uncovered_requirements(): list[str]
+                - orphan_tests(): list[str]
+                - test_to_reqs: dict[str, set[str]] (fallback orphan)
 
     Returns:
         CoverageKPI: structure KPI complète et déterministe.
@@ -161,13 +184,12 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
         raise KPIError("Invalid input: 'matrix' must expose attribute 'req_to_tests'.")
 
     req_to_tests = getattr(matrix, "req_to_tests")
-    if not isinstance(req_to_tests, dict):
-        raise KPIError("Invalid input: 'matrix.req_to_tests' must be a dict.")
+    if not isinstance(req_to_tests, Mapping):
+        raise KPIError("Invalid input: 'matrix.req_to_tests' must be a dict-like mapping.")
 
     req_ids = _safe_sorted([str(k) for k in req_to_tests.keys()])
     total_requirements = len(req_ids)
 
-    # covered requirements = celles qui ont >=1 test lié
     covered_req_ids: List[str] = []
     uncovered_req_ids: List[str] = []
 
@@ -175,15 +197,10 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
     total_links = 0
 
     for req_id in req_ids:
-        tests = req_to_tests.get(req_id, set())
-        if tests is None:
-            tests = set()
-        if not isinstance(tests, (set, list, tuple)):
-            raise KPIError(
-                f"Invalid input: req_to_tests['{req_id}'] must be a set/list/tuple of test IDs."
-            )
-        test_ids = [str(t) for t in tests if str(t).strip() != ""]
+        raw_tests = req_to_tests.get(req_id, set())
+        test_ids = _normalize_test_ids(raw_tests)
         count = len(set(test_ids))
+
         req_to_tests_count[req_id] = count
         total_links += count
 
@@ -192,21 +209,21 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
         else:
             uncovered_req_ids.append(req_id)
 
-    # Certains projets préfèrent s'aligner sur matrix.uncovered_requirements()
-    # -> on l'utilise si disponible, mais on garde le calcul ci-dessus comme baseline.
+    # Si l'API matrix expose uncovered_requirements(), on compare (audit/log) sans override.
     if hasattr(matrix, "uncovered_requirements") and callable(getattr(matrix, "uncovered_requirements")):
         try:
-            external_uncovered = [str(x) for x in matrix.uncovered_requirements()]
-            external_uncovered = _safe_sorted(external_uncovered)
-            # On ne force pas si incohérence majeure, mais on log.
+            external_uncovered = _safe_sorted([str(x) for x in matrix.uncovered_requirements()])
             if set(external_uncovered) != set(uncovered_req_ids):
                 log.warning(
-                    "KPI uncovered mismatch (computed=%s, matrix=%s). Keeping computed baseline.",
+                    "KPI uncovered mismatch: computed=%s matrix=%s (keeping computed baseline).",
                     uncovered_req_ids,
                     external_uncovered,
                 )
         except Exception as e:
-            log.warning("matrix.uncovered_requirements() failed (%s). Keeping computed baseline.", e)
+            log.warning(
+                "matrix.uncovered_requirements() failed (%s). Keeping computed baseline.",
+                e,
+            )
 
     orphan_tests: List[str] = []
     if hasattr(matrix, "orphan_tests") and callable(getattr(matrix, "orphan_tests")):
@@ -218,14 +235,14 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
         # fallback : si matrix expose test_to_reqs, on peut inférer
         if hasattr(matrix, "test_to_reqs"):
             test_to_reqs = getattr(matrix, "test_to_reqs")
-            if isinstance(test_to_reqs, dict):
+            if isinstance(test_to_reqs, Mapping):
                 orphan_tests = _safe_sorted([str(t) for t, reqs in test_to_reqs.items() if not reqs])
 
-    # total tests : on estime à partir de l'union des tests liés + orphelins
-    linked_tests_union = set()
-    for tests in req_to_tests.values():
-        if isinstance(tests, (set, list, tuple)):
-            linked_tests_union.update([str(t) for t in tests if str(t).strip() != ""])
+    # total tests : union des tests liés + orphelins
+    linked_tests_union: set[str] = set()
+    for raw_tests in req_to_tests.values():
+        if isinstance(raw_tests, (set, list, tuple)):
+            linked_tests_union.update(_normalize_test_ids(raw_tests))
 
     all_tests_union = set(linked_tests_union).union(set(orphan_tests))
     total_tests = len(all_tests_union)
@@ -260,7 +277,6 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
         len(kpi.orphan_tests),
         kpi.total_links,
     )
-
     return kpi
 
 
@@ -268,9 +284,7 @@ def compute_coverage_kpis(matrix: Any) -> CoverageKPI:
 # ▶️ Main (debug seulement)
 # ============================================================
 def main() -> None:
-    """
-    Point d’entrée CLI pour debug local (non utilisé par la CLI app2).
-    """
+    """Point d’entrée CLI pour debug local (non utilisé par la CLI app2)."""
     log.info("=== Debug kpi.py ===")
 
     class _DummyMatrix:
