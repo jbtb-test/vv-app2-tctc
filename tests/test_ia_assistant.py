@@ -6,7 +6,13 @@ test_ia_assistant.py — APP2 TCTC
 ------------------------------------------------------------
 Description :
     Tests unitaires pour l'assistant IA (suggestion-only).
-    Focus : fallback déterministe (R1).
+    Focus : fallback déterministe et non bloquant (R1).
+
+Objectifs :
+    - AI désactivée -> []
+    - AI demandée sans clé -> []
+    - AI activée mais dépendance OpenAI absente -> []
+    - Matrice invalide (None / manque de méthode) -> [] + warning log
 
 Usage :
     pytest -q tests/test_ia_assistant.py
@@ -15,6 +21,9 @@ Usage :
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 import sys
 
 import pytest
@@ -27,7 +36,6 @@ from vv_app2_tctc.traceability import build_matrix_from_testcases
 # ============================================================
 # 🔧 Helpers
 # ============================================================
-
 def _mk_req(req_id: str) -> models.Requirement:
     return models.Requirement.from_dict(
         {"requirement_id": req_id, "title": "t", "description": "d", "criticality": "HIGH"}
@@ -43,7 +51,6 @@ def _mk_tc(tc_id: str, links_raw: str) -> models.TestCase:
 # ============================================================
 # 🧪 Tests
 # ============================================================
-
 def test_ai_disabled_returns_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENABLE_AI", "0")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -82,12 +89,18 @@ def test_ai_enabled_but_openai_missing_returns_empty(monkeypatch: pytest.MonkeyP
     out = suggest_missing_links(reqs, tcs, matrix)
     assert out == []
 
-def test_ai_invalid_matrix_none_returns_empty(caplog) -> None:
-    from vv_app2_tctc.ia_assistant import suggest_missing_links
-    from vv_app2_tctc.models import Requirement, TestCase
 
-    reqs = [Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"})]
-    tcs = [TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""})]
+def test_ai_invalid_matrix_none_returns_empty(caplog) -> None:
+    reqs = [
+        models.Requirement.from_dict(
+            {"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}
+        )
+    ]
+    tcs = [
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""}
+        )
+    ]
 
     with caplog.at_level("WARNING"):
         out = suggest_missing_links(reqs, tcs, matrix=None)
@@ -97,14 +110,19 @@ def test_ai_invalid_matrix_none_returns_empty(caplog) -> None:
 
 
 def test_ai_invalid_matrix_missing_method_returns_empty(caplog) -> None:
-    from vv_app2_tctc.ia_assistant import suggest_missing_links
-    from vv_app2_tctc.models import Requirement, TestCase
-
     class DummyMatrix:
         pass
 
-    reqs = [Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"})]
-    tcs = [TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""})]
+    reqs = [
+        models.Requirement.from_dict(
+            {"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}
+        )
+    ]
+    tcs = [
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""}
+        )
+    ]
 
     with caplog.at_level("WARNING"):
         out = suggest_missing_links(reqs, tcs, matrix=DummyMatrix())

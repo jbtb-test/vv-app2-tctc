@@ -6,8 +6,8 @@ test_validators.py — APP2 TCTC
 ------------------------------------------------------------
 Description :
     Tests unitaires pour vv_app2_tctc.validators :
-    - validate_datasets() : erreurs bloquantes + warnings
-    - raise_if_invalid()  : exception DatasetValidationError
+      - validate_datasets() : erreurs bloquantes + warnings
+      - raise_if_invalid()  : exception DatasetValidationError
 
 Objectifs :
     - Unicité IDs (requirements/tests)
@@ -21,6 +21,9 @@ Usage :
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 import pytest
 
 from vv_app2_tctc.models import Requirement, TestCase
@@ -28,9 +31,8 @@ from vv_app2_tctc.validators import DatasetValidationError, raise_if_invalid, va
 
 
 # ============================================================
-# 🔧 Helpers / Fixtures
+# 🔧 Helpers
 # ============================================================
-
 def _req(req_id: str) -> Requirement:
     return Requirement.from_dict(
         {"requirement_id": req_id, "title": "t", "description": "d", "criticality": "HIGH"}
@@ -46,10 +48,9 @@ def _tc(tc_id: str, links_raw: str) -> TestCase:
 # ============================================================
 # 🧪 Tests
 # ============================================================
-
 def test_validate_datasets_nominal_with_warnings_orphan_and_uncovered() -> None:
     reqs = [_req("REQ-001"), _req("REQ-002")]
-    tcs = [_tc("TC-001", "REQ-001"), _tc("TC-002", "")]  # orphan
+    tcs = [_tc("TC-001", "REQ-001"), _tc("TC-002", "")]
 
     report = validate_datasets(reqs, tcs)
 

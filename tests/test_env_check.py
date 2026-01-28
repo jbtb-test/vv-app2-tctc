@@ -11,6 +11,8 @@ Objectifs :
     - Vérifier présence des champs contractuels
     - Vérifier rendu markdown (sections)
     - Vérifier IO (write_text / write_json)
+    - Vérifier redaction des chemins utilisateur
+    - Vérifier main() retourne un code de sortie (int)
 
 Usage :
     pytest -q tests/test_env_check.py
@@ -19,6 +21,9 @@ Usage :
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 import json
 from pathlib import Path
 
@@ -28,7 +33,6 @@ from tools.env_check import collect_env_info, env_info_to_dict, render_markdown,
 # ============================================================
 # 🧪 Tests
 # ============================================================
-
 def test_collect_env_info_has_expected_fields() -> None:
     info = collect_env_info()
     data = env_info_to_dict(info)
@@ -75,6 +79,7 @@ def test_write_json_creates_valid_json(tmp_path: Path) -> None:
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data == payload
 
+
 def test_render_markdown_redacts_user_path() -> None:
     from tools.env_check import EnvInfo, render_markdown
 
@@ -98,8 +103,7 @@ def test_render_markdown_redacts_user_path() -> None:
 
 def test_main_exit_code_with_fail_on_option() -> None:
     from tools.env_check import main
+
     # Doit retourner un int, ne pas lever
     rc = main(["--print", "--quiet", "--fail-on", "venv"])
     assert isinstance(rc, int)
-
-

@@ -8,9 +8,11 @@ Description :
     Tests unitaires (pytest) pour le calcul KPI de couverture.
 
 Objectifs :
-    - Vérifier comportement nominal (couverture partielle)
-    - Vérifier cas limite (0 exigences)
-    - Vérifier cas limite (liens vides)
+    - Comportement nominal (couverture partielle)
+    - Cas limite (0 exigences)
+    - Cas limite (liens vides)
+    - Cas nominal (100% couvert)
+    - Cas nominal (tests sans liens -> uncovered + orphans)
 
 Usage :
     pytest -q tests/test_kpi.py
@@ -19,6 +21,9 @@ Usage :
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 import pytest
 
 from vv_app2_tctc import models
@@ -29,7 +34,6 @@ from vv_app2_tctc.traceability import build_matrix_from_testcases
 # ============================================================
 # 🔧 Fixtures
 # ============================================================
-
 @pytest.fixture
 def req_001() -> models.Requirement:
     return models.Requirement.from_dict(
@@ -47,7 +51,6 @@ def req_002() -> models.Requirement:
 # ============================================================
 # 🧪 Tests
 # ============================================================
-
 def test_kpi_nominal_one_covered_one_uncovered(req_001: models.Requirement, req_002: models.Requirement) -> None:
     tcs = [
         models.TestCase.from_dict(
@@ -90,18 +93,23 @@ def test_kpi_empty_links_handled(req_001: models.Requirement) -> None:
     assert kpi.uncovered_requirements == ["REQ-001"]
     assert kpi.coverage_percent == 0.0
 
-def test_kpi_all_covered_no_orphans() -> None:
-    from vv_app2_tctc.models import Requirement, TestCase
-    from vv_app2_tctc.traceability import build_matrix_from_testcases
-    from vv_app2_tctc.kpi import compute_coverage_kpis
 
+def test_kpi_all_covered_no_orphans() -> None:
     reqs = [
-        Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}),
-        Requirement.from_dict({"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "LOW"}),
+        models.Requirement.from_dict(
+            {"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}
+        ),
+        models.Requirement.from_dict(
+            {"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "LOW"}
+        ),
     ]
     tcs = [
-        TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": "REQ-001"}),
-        TestCase.from_dict({"test_id": "TC-002", "title": "t", "description": "d", "linked_requirements_raw": "REQ-002"}),
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": "REQ-001"}
+        ),
+        models.TestCase.from_dict(
+            {"test_id": "TC-002", "title": "t", "description": "d", "linked_requirements_raw": "REQ-002"}
+        ),
     ]
 
     m = build_matrix_from_testcases(reqs, tcs)
@@ -112,18 +120,23 @@ def test_kpi_all_covered_no_orphans() -> None:
     assert list(kpi.orphan_tests) == []
     assert kpi.total_links == 2
 
-def test_kpi_tests_present_but_no_links_all_uncovered_all_orphans() -> None:
-    from vv_app2_tctc.models import Requirement, TestCase
-    from vv_app2_tctc.traceability import build_matrix_from_testcases
-    from vv_app2_tctc.kpi import compute_coverage_kpis
 
+def test_kpi_tests_present_but_no_links_all_uncovered_all_orphans() -> None:
     reqs = [
-        Requirement.from_dict({"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}),
-        Requirement.from_dict({"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "LOW"}),
+        models.Requirement.from_dict(
+            {"requirement_id": "REQ-001", "title": "t", "description": "d", "criticality": "HIGH"}
+        ),
+        models.Requirement.from_dict(
+            {"requirement_id": "REQ-002", "title": "t", "description": "d", "criticality": "LOW"}
+        ),
     ]
     tcs = [
-        TestCase.from_dict({"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""}),
-        TestCase.from_dict({"test_id": "TC-002", "title": "t", "description": "d", "linked_requirements_raw": ""}),
+        models.TestCase.from_dict(
+            {"test_id": "TC-001", "title": "t", "description": "d", "linked_requirements_raw": ""}
+        ),
+        models.TestCase.from_dict(
+            {"test_id": "TC-002", "title": "t", "description": "d", "linked_requirements_raw": ""}
+        ),
     ]
 
     m = build_matrix_from_testcases(reqs, tcs)

@@ -6,8 +6,8 @@ test_main.py — APP2 TCTC
 ------------------------------------------------------------
 Description :
     Tests d'intégration légers pour vv_app2_tctc.main :
-    - process() génère le bundle (HTML + CSV) dans tmp_path
-    - exécution module -m (CLI-like) génère les fichiers dans tmp_path
+      - process() génère le bundle (HTML + CSV) dans tmp_path
+      - exécution module -m (CLI-like) génère les fichiers dans tmp_path
 
 Objectifs :
     - Génération artefacts (HTML/CSV) sans IA
@@ -21,6 +21,9 @@ Usage :
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 import os
 import subprocess
 import sys
@@ -31,9 +34,8 @@ import pytest
 
 
 # ============================================================
-# 🔧 Helpers / Fixtures
+# 🔧 Fixtures
 # ============================================================
-
 @pytest.fixture
 def repo_root() -> Path:
     # tests/ est au niveau repo_app2
@@ -50,8 +52,11 @@ def env_no_ai() -> Dict[str, str]:
 # ============================================================
 # 🧪 Tests
 # ============================================================
-
-def test_process_generates_report_bundle_in_tmp_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, repo_root: Path) -> None:
+def test_process_generates_report_bundle_in_tmp_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    repo_root: Path,
+) -> None:
     monkeypatch.setenv("ENABLE_AI", "0")
     from vv_app2_tctc.main import process  # import après patch env
 
@@ -103,7 +108,11 @@ def test_process_generates_report_bundle_in_tmp_path(tmp_path: Path, monkeypatch
     assert "TCTC" in html_text
 
 
-def test_cli_like_module_execution_generates_files(tmp_path: Path, repo_root: Path, env_no_ai: Dict[str, str]) -> None:
+def test_cli_like_module_execution_generates_files(
+    tmp_path: Path,
+    repo_root: Path,
+    env_no_ai: Dict[str, str],
+) -> None:
     cmd = [
         sys.executable,
         "-m",
