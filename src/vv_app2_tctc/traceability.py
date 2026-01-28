@@ -12,21 +12,33 @@ Rôle :
         * mapping Requirement -> set(TestCase)
         * mapping TestCase -> set(Requirement)
         * liste normalisée des TraceLink (source DATASET/AI/HUMAN)
-    - Fournir une vue "matrice" exploitable (lignes/colonnes) pour exports.
+    - Fournir une vue "matrice" exploitable (exports CSV / HTML).
 
 Notes :
     - La validation de cohérence (IDs uniques, liens existants) est gérée dans validators.py.
-    - Ici on suppose des datasets déjà validés si l'appelant veut du "strict".
+    - Ici, on suppose des datasets déjà validés si l'appelant veut du "strict".
 ============================================================
 """
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-from vv_app2_tctc.models import Requirement, TestCase, TraceLink, LinkSource, build_links_from_testcases
+from vv_app2_tctc.models import (
+    Requirement,
+    TestCase,
+    TraceLink,
+    LinkSource,
+    build_links_from_testcases,
+)
 
+# ============================================================
+# 🔎 Public exports
+# ============================================================
 __all__ = [
     "TraceabilityMatrix",
     "build_traceability_matrix",
@@ -61,6 +73,9 @@ class TraceabilityMatrix:
     requirement_ids: List[str] = field(default_factory=list)
     test_ids: List[str] = field(default_factory=list)
 
+    # ----------------------------
+    # Vues dérivées (deterministic)
+    # ----------------------------
     def covered_requirements(self) -> Set[str]:
         """Ensemble des exigences couvertes (au moins 1 test)."""
         return {rid for rid, tcs in self.req_to_tests.items() if tcs}
@@ -72,11 +87,11 @@ class TraceabilityMatrix:
 
     def orphan_tests(self) -> List[str]:
         """Liste triée des tests orphelins (aucune exigence liée)."""
-        return [tid for tid in self.test_ids if len(self.test_to_reqs.get(tid, set())) == 0]
+        return [tid for tid in self.test_ids if not self.test_to_reqs.get(tid)]
 
 
 # ============================================================
-# 🔧 Internals
+# 🔧 Internals (helpers privés)
 # ============================================================
 def _index_requirements(requirements: Iterable[Requirement]) -> Dict[str, Requirement]:
     return {r.requirement_id: r for r in requirements}
@@ -90,10 +105,12 @@ def _dedup_links(links: Iterable[TraceLink]) -> List[TraceLink]:
     """
     Déduplication déterministe :
       - clé = (requirement_id, test_id, source)
-      - on conserve le premier (ordre d'entrée), puis on trie stablement.
+      - on conserve le premier (ordre d'entrée)
+      - tri final stable pour audit / tests
     """
     seen: Set[Tuple[str, str, str]] = set()
     out: List[TraceLink] = []
+
     for l in links:
         key = (l.requirement_id, l.test_id, l.source.value)
         if key in seen:
@@ -101,7 +118,6 @@ def _dedup_links(links: Iterable[TraceLink]) -> List[TraceLink]:
         seen.add(key)
         out.append(l)
 
-    # Tri déterministe pour audit / tests
     out.sort(key=lambda x: (x.requirement_id, x.test_id, x.source.value))
     return out
 
@@ -117,18 +133,9 @@ def build_traceability_matrix(
     """
     Construit la matrice Req ↔ Test.
 
-    Args:
-        requirements: liste d'exigences normalisées
-        tests: liste de tests normalisés
-        links: optionnel. Si None, on construit les liens DATASET depuis les TestCase.
-
-    Returns:
-        TraceabilityMatrix
-
     Hypothèse :
-        - l'appelant peut avoir validé la cohérence via validators.py.
-        - si des liens pointent vers des IDs inconnus, ils seront tout de même intégrés
-          (mais l'appelant doit normalement bloquer avant).
+        - la cohérence est validée en amont (validators.py)
+        - les liens invalides doivent être bloqués avant cet appel
     """
     req_index = _index_requirements(requirements)
     test_index = _index_tests(tests)
@@ -145,8 +152,6 @@ def build_traceability_matrix(
     test_to_reqs: Dict[str, Set[str]] = {tid: set() for tid in test_ids}
 
     for l in norm_links:
-        # On alimente les mappings uniquement si l'ID existe dans l'index
-        # (les liens invalides doivent être stoppés par validators.py en amont)
         if l.requirement_id in req_to_tests and l.test_id in test_to_reqs:
             req_to_tests[l.requirement_id].add(l.test_id)
             test_to_reqs[l.test_id].add(l.requirement_id)
@@ -167,17 +172,15 @@ def build_matrix_from_testcases(
     tests: List[TestCase],
 ) -> TraceabilityMatrix:
     """
-    Convenience wrapper : construit la matrice uniquement à partir des liens DATASET
+    Raccourci : construit la matrice uniquement depuis les liens DATASET
     présents dans TestCase.linked_requirements.
     """
     return build_traceability_matrix(requirements=requirements, tests=tests, links=None)
 
 
 # ============================================================
-# 🧱 Utilitaires "cellule" (utile pour export/report)
+# 🧱 Utilitaire cellule (export / report)
 # ============================================================
 def matrix_cell(matrix: TraceabilityMatrix, requirement_id: str, test_id: str) -> bool:
-    """
-    Retourne True si (requirement_id ↔ test_id) est lié dans la matrice.
-    """
+    """Retourne True si (requirement_id ↔ test_id) est lié dans la matrice."""
     return test_id in matrix.req_to_tests.get(requirement_id, set())

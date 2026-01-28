@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 ============================================================
-tests.test_models — APP2 TCTC
+test_models.py — APP2 TCTC
 ------------------------------------------------------------
 Description :
     Tests unitaires des modèles de domaine APP2 — TCTC.
@@ -17,6 +19,9 @@ Usage :
 
 from __future__ import annotations
 
+# ============================================================
+# 📦 Imports
+# ============================================================
 import pytest
 
 from vv_app2_tctc.models import (
@@ -33,7 +38,6 @@ from vv_app2_tctc.models import (
 # ============================================================
 # 🔧 Fixtures
 # ============================================================
-
 @pytest.fixture
 def req_nominal_dict() -> dict:
     return {
@@ -48,7 +52,6 @@ def req_nominal_dict() -> dict:
 # ============================================================
 # 🧪 Tests — Parsing helpers
 # ============================================================
-
 def test_parse_requirement_ids_nominal_and_dedup_ordered() -> None:
     raw = " REQ-001 | REQ-002 ; REQ-002,REQ-003  ,, "
     out = parse_requirement_ids(raw)
@@ -63,7 +66,6 @@ def test_parse_requirement_ids_empty() -> None:
 # ============================================================
 # 🧪 Tests — Requirement
 # ============================================================
-
 def test_requirement_from_dict_nominal_and_aliases(req_nominal_dict: dict) -> None:
     r = Requirement.from_dict(req_nominal_dict)
 
@@ -96,7 +98,6 @@ def test_requirement_invalid_criticality() -> None:
 # ============================================================
 # 🧪 Tests — TestCase
 # ============================================================
-
 def test_testcase_from_dict_parses_raw_links() -> None:
     d = {
         "test_id": "TC-001",
@@ -139,7 +140,6 @@ def test_testcase_from_dict_expects_dict() -> None:
 # ============================================================
 # 🧪 Tests — TraceLink
 # ============================================================
-
 def test_tracelink_from_dict_nominal_and_source_enum() -> None:
     d = {
         "requirement_id": "REQ-001",
@@ -171,7 +171,6 @@ def test_tracelink_validation_missing_ids() -> None:
 # ============================================================
 # 🧪 Tests — CoverageKpi
 # ============================================================
-
 def test_coveragekpi_nominal() -> None:
     k = CoverageKpi(
         requirements_total=10,

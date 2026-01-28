@@ -1,6 +1,6 @@
 # APP2 — TCTC (Traceability & Test Coverage Tool)
 
-## TL;DR — Démo en 1 phrase
+## Démo en 1 phrase
 Outil de **traçabilité Exigences ↔ Cas de test** (type DOORS / Polarion) qui construit automatiquement une **matrice de traçabilité**,
 calcule des **KPI de couverture** (exigences non couvertes, tests orphelins) et génère un **rapport HTML démontrable**,
 avec **IA optionnelle et non décisionnelle** pour suggérer des liens manquants.
@@ -104,7 +104,9 @@ Des captures d’écran sont disponibles dans :
 
 Cette option correspond au mode nominal de l’outil (100 % déterministe).
 
-```bash
+```powershell
+. .\tools\load_env_secret.ps1
+$env:ENABLE_AI="0"
 python -m vv_app2_tctc.main --out-dir data/outputs --verbose
 ```
 
@@ -151,4 +153,18 @@ vv-app2-tctc/
 > Les dépendances et environnements sont gérés via `pyproject.toml`.
 > Les fichiers `requirements*.txt` sont fournis à titre informatif et de traçabilité.
 
+---
+
+## ⚖️ Usage & licence
+
+Ce dépôt est fourni à des fins de **démonstration et d’évaluation professionnelle** uniquement.
+
+Il ne constitue pas un produit certifié ni un outil industriel prêt à l’emploi.
+Les résultats produits doivent être analysés et validés par un humain.
+
+Lorsqu’elle est activée, l’intelligence artificielle intervient **uniquement en tant que moteur de suggestion**.
+Aucune décision automatique n’est prise par l’IA.
+
+© 2026 JBTB. Tous droits réservés.  
+Voir le fichier [LICENSE](LICENSE) pour les conditions complètes d’utilisation.
 

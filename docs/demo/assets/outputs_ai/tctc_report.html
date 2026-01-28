@@ -274,10 +274,10 @@ Description :
                 </p>
 
                 <div class="progress" title="Coverage">
-                    <span class="warn" style="width: 75.0%"></span>
+                    <span class="" style="width: 90.0%"></span>
                 </div>
                 <p class="muted" style="margin:6px 0 0 0;">
-                    Coverage: <strong>75.0%</strong> · Links: 3
+                    Coverage: <strong>90.0%</strong> · Links: 35
                 </p>
 
                 <div class="toc">
@@ -292,15 +292,15 @@ Description :
 
             <div class="chips">
                 
-                    <span class="chip"><span class="dot dot-bad"></span>Uncovered: 1</span>
+                    <span class="chip"><span class="dot dot-bad"></span>Uncovered: 2</span>
                 
 
                 
-                    <span class="chip"><span class="dot dot-warn"></span>Orphans: 1</span>
+                    <span class="chip"><span class="dot dot-warn"></span>Orphans: 2</span>
                 
 
                 
-                    <span class="chip"><span class="dot dot-ai"></span>AI: enabled · 1</span>
+                    <span class="chip"><span class="dot dot-ai"></span>AI: enabled · 4</span>
                 
             </div>
         </div>
@@ -308,20 +308,20 @@ Description :
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-label">Requirements</div>
-                <div class="kpi-value">4</div>
+                <div class="kpi-value">20</div>
                 <div class="kpi-hint">Total in dataset</div>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-label">Test cases</div>
-                <div class="kpi-value">4</div>
+                <div class="kpi-value">35</div>
                 <div class="kpi-hint">Total in dataset</div>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-label">Coverage</div>
-                <div class="kpi-value">75.0%</div>
-                <div class="kpi-hint">Uncovered: 1 · Orphans: 1</div>
+                <div class="kpi-value">90.0%</div>
+                <div class="kpi-hint">Uncovered: 2 · Orphans: 2</div>
             </div>
         </div>
     </div>
@@ -336,18 +336,18 @@ Description :
                 <tr><th>Métrique</th><th class="num">Valeur</th><th>Note</th></tr>
                 <tr>
                     <td>Coverage (%)</td>
-                    <td class="num"><strong>75.0</strong>%</td>
+                    <td class="num"><strong>90.0</strong>%</td>
                     <td>
-                        <span class="pill-warn">WARN</span>
+                        <span class="pill-ok">OK</span>
                         
                     </td>
                 </tr>
-                <tr><td>Total requirements</td><td class="num">4</td><td class="muted">Dataset size</td></tr>
-                <tr><td>Covered requirements</td><td class="num">3</td><td class="muted">Covered by ≥1 test</td></tr>
-                <tr><td>Uncovered requirements</td><td class="num">1</td><td class="muted">No linked tests</td></tr>
-                <tr><td>Orphan tests</td><td class="num">1</td><td class="muted">No linked requirements</td></tr>
-                <tr><td>Total links</td><td class="num">3</td><td class="muted">Req↔TC links</td></tr>
-                <tr><td>Avg tests/requirement</td><td class="num">0.75</td><td class="muted">Mean linked tests</td></tr>
+                <tr><td>Total requirements</td><td class="num">20</td><td class="muted">Dataset size</td></tr>
+                <tr><td>Covered requirements</td><td class="num">18</td><td class="muted">Covered by ≥1 test</td></tr>
+                <tr><td>Uncovered requirements</td><td class="num">2</td><td class="muted">No linked tests</td></tr>
+                <tr><td>Orphan tests</td><td class="num">2</td><td class="muted">No linked requirements</td></tr>
+                <tr><td>Total links</td><td class="num">35</td><td class="muted">Req↔TC links</td></tr>
+                <tr><td>Avg tests/requirement</td><td class="num">1.75</td><td class="muted">Mean linked tests</td></tr>
             </table>
         </div>
     </div>
@@ -355,7 +355,7 @@ Description :
     <!-- 2.12.D: Full lists -->
     <div class="card" id="lists">
         <details open>
-            <summary>Liste complète des exigences <span class="muted">(4)</span></summary>
+            <summary>Liste complète des exigences <span class="muted">(20)</span></summary>
             
                 <div class="table-wrap" style="margin-top:10px;">
                     <table class="list-table">
@@ -366,22 +366,102 @@ Description :
                         
                         <tr>
                             <td class="mono">REQ-001</td>
-                            <td>Login</td>
+                            <td>Emergency brake stopping distance</td>
                         </tr>
                         
                         <tr>
                             <td class="mono">REQ-002</td>
-                            <td>Logout</td>
+                            <td>HMI status display clarity</td>
                         </tr>
                         
                         <tr>
                             <td class="mono">REQ-003</td>
-                            <td>Password rules</td>
+                            <td>Infusion flow accuracy</td>
                         </tr>
                         
                         <tr>
                             <td class="mono">REQ-004</td>
-                            <td>Account lockout</td>
+                            <td>UDS diagnostics response</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-005</td>
+                            <td>Nav accuracy qualitative</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-006</td>
+                            <td>Nav accuracy quantified</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-007</td>
+                            <td>Prevent unauthorized admin access</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-008</td>
+                            <td>RBAC enforced and logged</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-009</td>
+                            <td>Comms latency nominal</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-010</td>
+                            <td>Comms latency all conditions</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-011</td>
+                            <td>Occlusion alarm presence</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-012</td>
+                            <td>Occlusion alarm quantified</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-013</td>
+                            <td>DTC capacity</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-014</td>
+                            <td>DTC reliability</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-015</td>
+                            <td>Modem throughput</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-016</td>
+                            <td>Modem throughput low jitter</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-017</td>
+                            <td>Field update support</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-018</td>
+                            <td>OTA update rollback</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-019</td>
+                            <td>System is safe</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">REQ-020</td>
+                            <td>EN50128 evidence package</td>
                         </tr>
                         
                     </table>
@@ -392,7 +472,7 @@ Description :
 
     <div class="card">
         <details open>
-            <summary>Liste complète des tests <span class="muted">(4)</span></summary>
+            <summary>Liste complète des tests <span class="muted">(35)</span></summary>
             
                 <div class="table-wrap" style="margin-top:10px;">
                     <table class="list-table">
@@ -403,22 +483,177 @@ Description :
                         
                         <tr>
                             <td class="mono">TC-001</td>
-                            <td>Test login OK</td>
+                            <td>Brake distance nominal run</td>
                         </tr>
                         
                         <tr>
                             <td class="mono">TC-002</td>
-                            <td>Test logout OK</td>
+                            <td>Brake distance repeated runs</td>
                         </tr>
                         
                         <tr>
                             <td class="mono">TC-003</td>
-                            <td>Test password length</td>
+                            <td>HMI status snapshot review</td>
                         </tr>
                         
                         <tr>
                             <td class="mono">TC-004</td>
-                            <td>Test lockout after failed logins</td>
+                            <td>HMI response time measurement</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-005</td>
+                            <td>Infusion accuracy at 5 mL/h</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-006</td>
+                            <td>Infusion accuracy at 1 mL/h</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-007</td>
+                            <td>Infusion accuracy at 10 mL/h</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-008</td>
+                            <td>UDS 0x19 response time</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-009</td>
+                            <td>UDS response content</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-010</td>
+                            <td>Nav error percentile computation</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-011</td>
+                            <td>Nav nominal flight dataset</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-012</td>
+                            <td>Admin API unauthorized blocked</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-013</td>
+                            <td>Admin API authorized allowed</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-014</td>
+                            <td>Denied access logging content</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-015</td>
+                            <td>RBAC role matrix review</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-016</td>
+                            <td>Comms latency nominal 10k msgs</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-017</td>
+                            <td>Comms latency percentile check</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-018</td>
+                            <td>Comms stress condition latency</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-019</td>
+                            <td>Comms all-conditions claim review</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-020</td>
+                            <td>Occlusion alarm functional test</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-021</td>
+                            <td>Occlusion alarm timing</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-022</td>
+                            <td>Occlusion alarm SPL measurement</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-023</td>
+                            <td>DTC store capacity fill</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-024</td>
+                            <td>DTC persistence reboot</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-025</td>
+                            <td>DTC reliability long run</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-026</td>
+                            <td>Modem throughput nominal</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-027</td>
+                            <td>Modem throughput duration</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-028</td>
+                            <td>Modem jitter measurement</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-029</td>
+                            <td>Field update procedure inspection</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-030</td>
+                            <td>OTA update success</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-031</td>
+                            <td>OTA update forced failure rollback</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-032</td>
+                            <td>OTA rollback config integrity</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-033</td>
+                            <td>EN50128 evidence package checklist</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-034</td>
+                            <td>Orphan exploratory test</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="mono">TC-035</td>
+                            <td>Regression suite smoke</td>
                         </tr>
                         
                     </table>
@@ -430,12 +665,14 @@ Description :
     <div class="card" id="uncovered">
         <div class="section-title">
             <h3>Exigences non couvertes</h3>
-            <p class="muted">Count: 1</p>
+            <p class="muted">Count: 2</p>
         </div>
         
             <ul>
             
-                <li class="mono">REQ-004</li>
+                <li class="mono">REQ-005</li>
+            
+                <li class="mono">REQ-019</li>
             
             </ul>
         
@@ -444,12 +681,14 @@ Description :
     <div class="card" id="orphans">
         <div class="section-title">
             <h3>Tests orphelins</h3>
-            <p class="muted">Count: 1</p>
+            <p class="muted">Count: 2</p>
         </div>
         
             <ul>
             
-                <li class="mono">TC-004</li>
+                <li class="mono">TC-034</li>
+            
+                <li class="mono">TC-035</li>
             
             </ul>
         
@@ -475,7 +714,7 @@ Description :
                             <span class="pill-ok">YES</span>
                         
                     </td>
-                    <td class="mono">TC-001</td>
+                    <td class="mono">TC-001 TC-002</td>
                 </tr>
                 
                 <tr>
@@ -485,7 +724,7 @@ Description :
                             <span class="pill-ok">YES</span>
                         
                     </td>
-                    <td class="mono">TC-002</td>
+                    <td class="mono">TC-003 TC-004</td>
                 </tr>
                 
                 <tr>
@@ -495,17 +734,177 @@ Description :
                             <span class="pill-ok">YES</span>
                         
                     </td>
-                    <td class="mono">TC-003</td>
+                    <td class="mono">TC-005 TC-006 TC-007</td>
                 </tr>
                 
                 <tr>
                     <td class="mono">REQ-004</td>
                     <td>
                         
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-008 TC-009</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-005</td>
+                    <td>
+                        
                             <span class="pill-ko">NO</span>
                         
                     </td>
                     <td class="mono"></td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-006</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-010 TC-011</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-007</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-012</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-008</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-012 TC-013 TC-014 TC-015</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-009</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-016 TC-017 TC-018</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-010</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-019</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-011</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-020</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-012</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-021 TC-022</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-013</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-023 TC-024</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-014</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-024 TC-025</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-015</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-026 TC-027</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-016</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-028</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-017</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-029</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-018</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-030 TC-031 TC-032</td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-019</td>
+                    <td>
+                        
+                            <span class="pill-ko">NO</span>
+                        
+                    </td>
+                    <td class="mono"></td>
+                </tr>
+                
+                <tr>
+                    <td class="mono">REQ-020</td>
+                    <td>
+                        
+                            <span class="pill-ok">YES</span>
+                        
+                    </td>
+                    <td class="mono">TC-033</td>
                 </tr>
                 
             </table>
@@ -529,10 +928,31 @@ Description :
                     </tr>
                     
                     <tr>
-                        <td class="mono">REQ-004</td>
-                        <td class="mono">TC-004</td>
-                        <td class="num">0.95</td>
-                        <td>Attempts 5 incorrect logins and verifies the account becomes locked.</td>
+                        <td class="mono">REQ-005</td>
+                        <td class="mono">TC-034</td>
+                        <td class="num">0.38</td>
+                        <td>Explores nav position/velocity error against reference during nominal operation.</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-005</td>
+                        <td class="mono">TC-035</td>
+                        <td class="num">0.22</td>
+                        <td>Smoke run checks nav outputs stay within expected bounds in nominal scenario.</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-019</td>
+                        <td class="mono">TC-035</td>
+                        <td class="num">0.46</td>
+                        <td>Smoke run checks core services start and remain stable; detects crashes/hangs that could create unsafe states.</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">REQ-019</td>
+                        <td class="mono">TC-034</td>
+                        <td class="num">0.32</td>
+                        <td>Exploratory sessions probe safety-related failure modes; flags any unsafe behavior under varied conditions.</td>
                     </tr>
                     
                 </table>

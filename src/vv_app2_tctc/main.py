@@ -38,16 +38,7 @@ Exit / failure policy:
 ============================================================
 """
 
-
 from __future__ import annotations
-
-from vv_app2_tctc.models import Requirement, TestCase
-from vv_app2_tctc.validators import validate_datasets, raise_if_invalid
-
-from vv_app2_tctc.traceability import build_matrix_from_testcases
-from vv_app2_tctc.kpi import compute_coverage_kpis
-from vv_app2_tctc.ia_assistant import is_ai_enabled, suggest_missing_links
-from vv_app2_tctc.report import generate_report_bundle
 
 # ============================================================
 # 📦 Imports
@@ -60,6 +51,24 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from vv_app2_tctc.ia_assistant import is_ai_enabled, suggest_missing_links
+from vv_app2_tctc.kpi import compute_coverage_kpis
+from vv_app2_tctc.models import Requirement, TestCase
+from vv_app2_tctc.report import generate_report_bundle
+from vv_app2_tctc.traceability import build_matrix_from_testcases
+from vv_app2_tctc.validators import raise_if_invalid, validate_datasets
+
+
+# ============================================================
+# 🔎 Public exports
+# ============================================================
+__all__ = [
+    "ModuleError",
+    "ProcessResult",
+    "process",
+    "main",
+]
 
 
 # ============================================================
@@ -78,7 +87,11 @@ def get_logger(name: str) -> logging.Logger:
         )
         handler.setFormatter(fmt)
         logger.addHandler(handler)
+
+    # N’impose pas INFO si l’app a déjà configuré logging
+    if logger.level == logging.NOTSET:
         logger.setLevel(logging.INFO)
+
     return logger
 
 
@@ -121,6 +134,7 @@ def _detect_delimiter(sample: str) -> str:
         return ";"
     return ","
 
+
 def _read_text_with_fallback_encodings(path: Path, encodings: List[str]) -> Tuple[str, str]:
     """
     Read file content trying multiple encodings.
@@ -134,6 +148,7 @@ def _read_text_with_fallback_encodings(path: Path, encodings: List[str]) -> Tupl
             last_err = e
             continue
     raise ModuleError(f"Unable to decode file {path} with encodings {encodings}: {last_err}")  # noqa: TRY003
+
 
 def _read_csv_rows(path: Path) -> Tuple[List[str], List[Dict[str, str]]]:
     """
@@ -175,8 +190,9 @@ def _read_csv_rows(path: Path) -> Tuple[List[str], List[Dict[str, str]]]:
             }
             rows.append(norm)
 
-    log.debug(f"CSV read OK: path={path}, encoding={used_enc}, delimiter='{delim}', rows={len(rows)}")
+    log.debug("CSV read OK: path=%s, encoding=%s, delimiter='%s', rows=%d", path, used_enc, delim, len(rows))
     return fieldnames, rows
+
 
 def _pick(row: Dict[str, str], keys: List[str], default: str = "") -> str:
     for k in keys:
@@ -206,7 +222,7 @@ def load_requirements(path: Path) -> List[Dict[str, str]]:
         desc = _pick(r, ["description", "text", "requirement_text"], default="")
         crit = _pick(r, ["criticality", "priority"], default="")
         if not (req_id and (title or desc)):
-            log.warning(f"Requirement row {idx}: empty -> skipped")
+            log.warning("Requirement row %d: empty -> skipped", idx)
             continue
         out.append(
             {
@@ -236,7 +252,7 @@ def load_tests(path: Path) -> List[Dict[str, str]]:
         desc = _pick(r, ["description", "text"], default="")
         links = _pick(r, ["linked_requirements", "links", "requirements"], default="")
         if not (tc_id and (title or desc)):
-            log.warning(f"Test row {idx}: empty -> skipped")
+            log.warning("Test row %d: empty -> skipped", idx)
             continue
         out.append(
             {
@@ -353,6 +369,7 @@ def write_snapshot_html(out_path: Path, requirements: List[Dict[str, str]], test
 """
     out_path.write_text(html, encoding="utf-8")
 
+
 def _write_fallback_snapshot(
     out_dir: Path,
     requirements: List[Dict[str, str]],
@@ -386,12 +403,12 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     """
     Orchestrates APP2 TCTC pipeline:
       - Load requirements.csv + tests.csv
-      - Validate dataset structure and consistency (2.8.1)
-      - Build traceability matrix (2.9) + compute KPIs (2.10)
-      - (Optional) Generate AI suggestions (2.11) — never blocking
-      - Generate report bundle (HTML + CSV) (2.12)
+      - Validate dataset structure and consistency
+      - Build traceability matrix + compute KPIs
+      - (Optional) Generate AI suggestions — never blocking
+      - Generate report bundle (HTML + CSV)
 
-    Orchestration guarantees (5.1 hardening):
+    Orchestration guarantees:
       - Output directory is created early
       - On fatal paths after loading datasets, a fallback snapshot (HTML+CSV) is generated best-effort
       - Validation errors are fatal only when --fail-on-empty is enabled
@@ -409,7 +426,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         if verbose:
             log.setLevel(logging.DEBUG)
 
-        log.info("Démarrage APP2 TCTC — CLI (2.12)")
+        log.info("Démarrage APP2 TCTC — CLI")
         log.info("Requirements : %s", req_path)
         log.info("Tests        : %s", tests_path)
         log.info("Out dir      : %s", out_dir)
@@ -428,9 +445,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         out_dir.mkdir(parents=True, exist_ok=True)
         fallback_artifacts: Dict[str, str] = {}
 
-        # ============================================================
-        # 📥 Load datasets (dicts)
-        # ============================================================
+        # Load datasets
         requirements = load_requirements(req_path)
         tests = load_tests(tests_path)
 
@@ -441,9 +456,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
                 raise ModuleError(msg)
             log.warning("%s (continuing, --fail-on-empty is OFF)", msg)
 
-        # ============================================================
-        # ✅ Validation datasets (2.8.1) + mapping models
-        # ============================================================
+        # Validation + mapping models
         requirements_m = [Requirement.from_dict(r) for r in requirements]
         tests_m = [
             TestCase.from_dict(
@@ -459,7 +472,6 @@ def process(data: Dict[str, Any]) -> ProcessResult:
 
         validation_report = validate_datasets(requirements_m, tests_m)
 
-        # Logs audit-friendly
         log.info(
             "Validation datasets: ok=%s, errors=%d, warnings=%d",
             validation_report.ok,
@@ -473,9 +485,6 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         for w in validation_report.warnings:
             log.warning("VAL_WARN  %s: %s | %s", w.code, w.message, w.context)
 
-        # Policy:
-        # - warnings never block
-        # - validation errors block only if --fail-on-empty is enabled
         if validation_report.errors and fail_on_empty:
             fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason="validation_errors")
             raise_if_invalid(validation_report)
@@ -483,21 +492,15 @@ def process(data: Dict[str, Any]) -> ProcessResult:
         if validation_report.errors and not fail_on_empty:
             log.warning("Validation errors detected but continuing (non-blocking mode). Outputs may be incomplete.")
 
-        # ============================================================
-        # 🔗 Matrice + KPI (2.9 / 2.10) — guarded
-        # ============================================================
+        # Matrix + KPI (guarded)
         try:
             matrix = build_matrix_from_testcases(requirements_m, tests_m)
             kpi = compute_coverage_kpis(matrix)
         except Exception as e:
-            fallback_artifacts = _write_fallback_snapshot(
-                out_dir, requirements, tests, reason=f"matrix/kpi_failed: {e}"
-            )
+            fallback_artifacts = _write_fallback_snapshot(out_dir, requirements, tests, reason=f"matrix/kpi_failed: {e}")
             raise ModuleError(f"Matrix/KPI step failed: {e}") from e
 
-        # ============================================================
-        # 🤖 Suggestions IA (optionnel) (2.11) — never blocking
-        # ============================================================
+        # AI suggestions (optional) — never blocking
         ai_suggestions: List[Dict[str, Any]] = []
         if is_ai_enabled():
             try:
@@ -514,9 +517,7 @@ def process(data: Dict[str, Any]) -> ProcessResult:
                 log.warning("AI suggestion step failed -> fallback [] (%s)", e)
                 ai_suggestions = []
 
-        # ============================================================
-        # 📄 Report bundle (HTML + CSV) (2.12) — guarded
-        # ============================================================
+        # Report bundle (guarded)
         try:
             bundle = generate_report_bundle(
                 requirements=requirements_m,
@@ -539,23 +540,15 @@ def process(data: Dict[str, Any]) -> ProcessResult:
             "requirements_input": str(req_path),
             "tests_input": str(tests_path),
             "out_dir": str(out_dir),
-
-            # 2.12 outputs
             "report_html": str(bundle.report_html),
             "traceability_csv": str(bundle.traceability_csv),
             "kpi_csv": str(bundle.kpi_csv),
             "ai_suggestions_csv": str(bundle.ai_suggestions_csv) if bundle.ai_suggestions_csv else None,
-
-            # KPI useful fields
             "coverage_percent": kpi.coverage_percent,
             "uncovered_requirements": list(kpi.uncovered_requirements),
             "orphan_tests": list(kpi.orphan_tests),
             "ai_suggestions_count": len(ai_suggestions),
-
-            # Validation report
             "validation": validation_report.to_dict(),
-
-            # Fallback artifacts (if any)
             "fallback": fallback_artifacts or None,
         }
 
@@ -566,7 +559,6 @@ def process(data: Dict[str, Any]) -> ProcessResult:
     except Exception as e:
         log.exception("Erreur inattendue dans process()")
         raise ModuleError(str(e)) from e
-
 
 
 # ============================================================
@@ -622,7 +614,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
-
 def main() -> None:
     args = _build_parser().parse_args()
     out = process(
@@ -634,8 +625,8 @@ def main() -> None:
             "verbose": args.verbose,
         }
     )
-    log.info(f"Résultat : ok={out.ok}, message={out.message}")
-    log.info(f"Payload  : {out.payload}")
+    log.info("Résultat : ok=%s, message=%s", out.ok, out.message)
+    log.info("Payload  : %s", out.payload)
 
 
 if __name__ == "__main__":
