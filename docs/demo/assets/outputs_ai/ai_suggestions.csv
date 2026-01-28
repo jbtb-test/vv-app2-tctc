@@ -1,2 +1,5 @@
 requirement_id,test_id,confidence,rationale
-REQ-004,TC-004,0.95,Attempts 5 incorrect logins and verifies the account becomes locked.
+REQ-005,TC-034,0.38,Explores nav position/velocity error against reference during nominal operation.
+REQ-005,TC-035,0.22,Smoke run checks nav outputs stay within expected bounds in nominal scenario.
+REQ-019,TC-035,0.46,Smoke run checks core services start and remain stable; detects crashes/hangs that could create unsafe states.
+REQ-019,TC-034,0.32,Exploratory sessions probe safety-related failure modes; flags any unsafe behavior under varied conditions.

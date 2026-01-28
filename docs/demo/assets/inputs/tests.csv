@@ -1,5 +1,36 @@
 ﻿test_id,title,description,linked_requirements
-TC-001,Test login OK,Valid credentials -> login success,REQ-001
-TC-002,Test logout OK,Logout ends session,REQ-002
-TC-003,Test password length,Reject passwords < 12 chars,REQ-003
-TC-004,Test lockout after failed logins,Try wrong password 5 times then verify account locked,
+TC-001,Brake distance nominal run,Measure stopping distance at 160 km/h dry track,REQ-001
+TC-002,Brake distance repeated runs,Repeat 10 runs and verify <=800 m each run,REQ-001
+TC-003,HMI status snapshot review,UI review for clarity/legibility,REQ-002
+TC-004,HMI response time measurement,Measure time to display status after event,REQ-002
+TC-005,Infusion accuracy at 5 mL/h,Measure avg flow over 60 min,REQ-003
+TC-006,Infusion accuracy at 1 mL/h,Measure avg flow at low rate,REQ-003
+TC-007,Infusion accuracy at 10 mL/h,Measure avg flow at high rate,REQ-003
+TC-008,UDS 0x19 response time,Request DTC via UDS and verify response <=2s,REQ-004
+TC-009,UDS response content,Verify DTC includes timestamp and operating mode,REQ-004
+TC-010,Nav error percentile computation,Compute 95th percentile error vs ref path,REQ-006
+TC-011,Nav nominal flight dataset,Run nav estimator on nominal flight dataset,REQ-006
+TC-012,Admin API unauthorized blocked,Try admin API as USER => 403,"REQ-007,REQ-008"
+TC-013,Admin API authorized allowed,Try admin API as ADMIN => 200,REQ-008
+TC-014,Denied access logging content,Verify denied log contains user_id timestamp IP,REQ-008
+TC-015,RBAC role matrix review,Check role permissions matrix documented,REQ-008
+TC-016,Comms latency nominal 10k msgs,"Measure E2E latency for 10,000 msgs nominal",REQ-009
+TC-017,Comms latency percentile check,Verify 99% <=200 ms nominal,REQ-009
+TC-018,Comms stress condition latency,Measure latency under moderate interference,REQ-009
+TC-019,Comms all-conditions claim review,Review requirement statement and assumptions,REQ-010
+TC-020,Occlusion alarm functional test,Trigger occlusion and verify alarm activates,REQ-011
+TC-021,Occlusion alarm timing,Verify alarm starts <=2 seconds,REQ-012
+TC-022,Occlusion alarm SPL measurement,Measure SPL >=60 dBA at 1 meter,REQ-012
+TC-023,DTC store capacity fill,Create 50+ DTCs and verify stored count,REQ-013
+TC-024,DTC persistence reboot,Store DTC then power cycle and verify preserved,"REQ-013,REQ-014"
+TC-025,DTC reliability long run,Long run with intermittent faults verify no DTC loss,REQ-014
+TC-026,Modem throughput nominal,Measure throughput >=20 Mbps 60 seconds,REQ-015
+TC-027,Modem throughput duration,Verify sustained throughput over time window,REQ-015
+TC-028,Modem jitter measurement,Compute jitter during 20 Mbps stream,REQ-016
+TC-029,Field update procedure inspection,Verify update procedure exists and documented,REQ-017
+TC-030,OTA update success,Perform OTA update and verify new version boots,REQ-018
+TC-031,OTA update forced failure rollback,Force failure and verify rollback <=5 min,REQ-018
+TC-032,OTA rollback config integrity,Verify config unchanged after rollback,REQ-018
+TC-033,EN50128 evidence package checklist,Check evidence package contains required artifacts,REQ-020
+TC-034,Orphan exploratory test,Ad-hoc exploratory test without formal linkage,
+TC-035,Regression suite smoke,Generic smoke test for nightly pipeline,
